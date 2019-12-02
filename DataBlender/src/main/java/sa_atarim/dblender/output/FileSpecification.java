@@ -3,12 +3,12 @@ import java.util.HashSet;
 import java.util.Set;
 import sa_atarim.dblender.sheets.XLSFile;
 
-public class FileSpecifications
+public class FileSpecification
 {
 	private XLSFile file;
 	private Set<String> columns;
 	
-	public FileSpecifications(XLSFile file) {
+	public FileSpecification(XLSFile file) {
 		this.file = file;
 		this.columns = new HashSet<String>();
 	}

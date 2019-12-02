@@ -1,4 +1,8 @@
 package sa_atarim.dblender.GUI;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DnDConstants;
@@ -6,28 +10,43 @@ import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.io.File;
 import java.util.List;
-import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.BoxView;
+import javax.swing.text.ComponentView;
+import javax.swing.text.Element;
+import javax.swing.text.IconView;
+import javax.swing.text.LabelView;
+import javax.swing.text.ParagraphView;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.StyledEditorKit;
+import javax.swing.text.View;
+import javax.swing.text.ViewFactory;
+import javaNK.util.files.FontHandler;
+import javaNK.util.files.FontHandler.FontStyle;
+import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.error.ErrorMessage;
+import sa_atarim.dblender.output.DirectortTrimmer;
 
-public class DropArea extends JTextArea
+public class DropArea extends JTextPane
 {
 	private static class CustomizedDropTarget extends DropTarget
 	{
-		private static enum Error {
-			ONLY_ONE_FILE("This area can only accept one file."),
-			TYPE_NOT_SUPPORTED("The file type you entered is not supported.");
-			
-			private String message;
-			
-			private Error(String msg) {
-				this.message = msg;
-			}
-		}
-		
 		private static final long serialVersionUID = 5250399025632065423L;
-		private static final String[] ALLOWED_TYPES = { "xls", "xlsx" };
 		
 		private String filePath;
+		private DropArea dropArea;
 		
+		/**
+		 * @param dropArea - The area that contains this target
+		 */
+		public CustomizedDropTarget(DropArea dropArea) {
+			this.dropArea = dropArea;
+		}
+		
+		@Override
 		@SuppressWarnings("unchecked")
 		public synchronized void drop(DropTargetDropEvent evt) {
 	        try {
@@ -37,53 +56,208 @@ public class DropArea extends JTextArea
 				List<File> droppedFile = (List<File>) eventTransferable.getTransferData(javaFilesFlavour);
 				
 				//validate input
-				if (droppedFile.size() > 1) throwError(Error.ONLY_ONE_FILE);
+				if (droppedFile.size() > 1) ErrorMessage.MULTIPLE_FILES.pop();
 				else {
 					File file = droppedFile.get(0);
 					String path = file.getPath();
 					
-					if (!isTypeAllowed(getFileExtension(path))) throwError(Error.TYPE_NOT_SUPPORTED);
-					else filePath = path;
+					if (!isTypeAllowed(DirectortTrimmer.extractFileExtension(path)))
+						ErrorMessage.TYPE_NOT_SUPPORTED.pop();
+					else {
+						filePath = path;
+						dropArea.setFile(DirectortTrimmer.extractFileName(path));
+					}
 				}
 	        }
 	        catch (Exception ex) { ex.printStackTrace(); }
 	    }
 		
-		private String getFileExtension(String path) {
-			return path.substring(path.indexOf('.') + 1);
-		}
+		/**
+		 * Remove the file from this target.
+		 */
+		private void clear() { filePath = null; }
 		
+		/**
+		 * @return The path of the file that had been dropped.
+		 */
 		public String getFilePath() { return filePath; }
 		
+		/**
+		 * @return True if the target received a file.
+		 */
 		public boolean hasFile() { return filePath != null; }
 		
+		/**
+		 * @param type - The type of the file that had been dropped
+		 * @return True if the file is allowed to be dropped.
+		 */
 		private boolean isTypeAllowed(String type) {
-			for (String extension : ALLOWED_TYPES)
+			for (String extension : Constants.ALLOWED_FILE_TYPES)
 				if (type.equals(extension)) return true;
 			
 			return false;
 		}
+	}
+	
+	private static class MyEditorKit extends StyledEditorKit
+	{
+		private static final long serialVersionUID = -7130624122663493785L;
 		
-		private static void throwError(Error error) {
-			System.out.println(error.message);
+		public ViewFactory getViewFactory() {
+	        return new StyledViewFactory();
+	    }
+		
+	    static class StyledViewFactory implements ViewFactory {
+	        public View create(Element elem) {
+	            String kind = elem.getName();
+	            if (kind != null) {
+	                if (kind.equals(AbstractDocument.ContentElementName))
+	                    return new LabelView(elem);
+	                else if (kind.equals(AbstractDocument.ParagraphElementName))
+	                    return new ParagraphView(elem);
+	                else if (kind.equals(AbstractDocument.SectionElementName))
+	                    return new CenteredBoxView(elem, View.Y_AXIS);
+	                else if (kind.equals(StyleConstants.ComponentElementName))
+	                    return new ComponentView(elem);
+	                else if (kind.equals(StyleConstants.IconElementName))
+	                    return new IconView(elem);
+	            }
+	 
+	            return new LabelView(elem);
+	        }
+	    }
+	}
+	
+	private static class CenteredBoxView extends BoxView
+	{
+	    public CenteredBoxView(Element elem, int axis) {
+			super(elem, axis);
+		}
+	    
+	    @Override
+		protected void layoutMajorAxis(int targetSpan, int axis, int[] offsets, int[] spans) {
+	        super.layoutMajorAxis(targetSpan,axis,offsets,spans);
+	        int textBlockHeight = 0;
+	        int offset = 0;
+	 
+	        for (int i = 0; i < spans.length; i++)
+	            textBlockHeight = spans[i];
+	        
+	        offset = (targetSpan - textBlockHeight) / 2;
+	        for (int i = 0; i < offsets.length; i++)
+	            offsets[i] += offset;
+	    }
+	}   
+	
+	private static final long serialVersionUID = 1L;
+	private static final Font FONT = FontHandler.load("Raleway", FontStyle.BOLD, 15);
+	private static final Color DEFAULT_TEXT_COLOR = new Color(180, 180, 180);
+	private static final Color FILE_NAME_COLOR = new Color(80, 137, 63);
+	private static final Color EMPTY_COLOR = new Color(0, 195, 255);
+	private static final Color BRIGHT_EMPTY_COLOR = new Color(171, 235, 255);
+	private static final Color OCCUPIED_COLOR = new Color(53, 221, 71);
+	private static final Color BRIGHT_OCCUPIED_COLOR = new Color(186, 255, 193);
+	private static final Color BACKGROUND = Color.WHITE;
+	private static final float COMPRESSED_FONT_SCALE = .8f;
+	
+	private CustomizedDropTarget dropTarget;
+	private String defaultText;
+	private Color areaColor, brightAreaColor;
+
+	/**
+	 * @param defaultText - The text to show as default before anything is dropped
+	 */
+	public DropArea(String defaultText) {
+		this.dropTarget = new CustomizedDropTarget(this);
+		this.defaultText = defaultText;
+		this.areaColor = EMPTY_COLOR;
+		this.brightAreaColor = BRIGHT_EMPTY_COLOR;
+		
+		setEditable(false);
+		setHighlighter(null);
+		setOpaque(false);
+		setDropTarget(dropTarget);
+		setText(defaultText);
+		setForeground(DEFAULT_TEXT_COLOR);
+		setBackground(BACKGROUND);
+		setFont(FONT);
+		
+		//center text
+		setEditorKit(new MyEditorKit());
+		StyledDocument doc = getStyledDocument();
+		SimpleAttributeSet center = new SimpleAttributeSet();
+		StyleConstants.setAlignment(center, StyleConstants.ALIGN_CENTER);
+        doc.setParagraphAttributes(0, doc.getLength() - 1, center, false);
+        setText(defaultText);
+	}
+	
+	/**
+	 * @return The path of the file that had been dropped to the area.
+	 */
+	public String getPath() { return dropTarget.getFilePath(); }
+	
+	/**
+	 * @return True if a file had been dropped to the area.
+	 */
+	public boolean isOccupied() { return dropTarget.hasFile(); }
+	
+	/**
+	 * Consider this area occupied.
+	 * 
+	 * @param fileName - The name of the file
+	 */
+	public void setFile(String fileName) {
+		if (fileName != null) {
+			this.areaColor = OCCUPIED_COLOR;
+			this.brightAreaColor = BRIGHT_OCCUPIED_COLOR;
+			setForeground(FILE_NAME_COLOR);
+			setText(fileName);
+		}
+		//clear file
+		else {
+			areaColor = EMPTY_COLOR;
+			brightAreaColor = BRIGHT_EMPTY_COLOR;
+			setForeground(DEFAULT_TEXT_COLOR);
+			setText(defaultText);
+			dropTarget.clear();
 		}
 	}
 	
-	private static final long serialVersionUID = 1L;
-	
-	private CustomizedDropTarget dropTarget;
-
-	/**
-	 * @param dim - The dimension of the area
-	 */
-	public DropArea() {
-		this.dropTarget = new CustomizedDropTarget();
+	private void calcMaxCharsPerLine() {
+		if (getText() == null || getText().equals("")) return;
 		
-		setEditable(false);
-		setDropTarget(dropTarget);
+		int fontSize = FONT.getSize();
+		int width = getPreferredSize().width;
+		int textLength = getText().length();
+		int maxCharsPerLine = (int) (width / fontSize * 1.85f);
+		float compressedScale = (textLength > maxCharsPerLine) ? COMPRESSED_FONT_SCALE : 1;
+		setFont(FONT.deriveFont((float) (FONT.getSize() * compressedScale)));
 	}
 	
-	public String getPath() { return dropTarget.getFilePath(); }
+	@Override
+	public void setPreferredSize(Dimension preferredSize) {
+		super.setPreferredSize(preferredSize);
+		calcMaxCharsPerLine();
+	}
 	
-	public boolean hasFile() { return dropTarget.hasFile(); }
+	@Override
+	public void setText(String text) {
+		super.setText(text);
+		calcMaxCharsPerLine();
+	}
+	
+	@Override
+	protected void paintComponent(Graphics g) {
+        g.setColor(getBackground());
+        g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
+        super.paintComponent(g);
+	}
+	
+	@Override
+    protected void paintBorder(Graphics g) {
+        g.setColor(areaColor);
+        g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 30, 30);
+        g.setColor(brightAreaColor);
+        g.drawRoundRect(3, 3, getWidth() - 7, getHeight() - 7, 25, 25);
+	}
 }

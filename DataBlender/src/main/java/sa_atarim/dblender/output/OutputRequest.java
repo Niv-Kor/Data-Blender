@@ -6,22 +6,22 @@ public class OutputRequest
 {
 	public static final String OUTPUT_FILE_TYPE = "xlsx";
 	
-	private List<FileSpecifications> files;
+	private List<FileSpecification> files;
 	private String filePath, fileName;
 	private String keyColumn;
 	private boolean intersect;
 	
 	public OutputRequest(String path, String name, String keyColumn, boolean intersect) {
-		this.files = new ArrayList<FileSpecifications>();
+		this.files = new ArrayList<FileSpecification>();
 		this.filePath = path;
 		this.fileName = name;
 		this.keyColumn = keyColumn;
 		this.intersect = intersect;
 	}
 	
-	public void addFile(FileSpecifications fileRequest) { files.add(fileRequest); }
+	public void addFile(FileSpecification fileRequest) { files.add(fileRequest); }
 	
-	public List<FileSpecifications> getFiles() { return files; }
+	public List<FileSpecification> getFiles() { return files; }
 	
 	public String getFileName() { return fileName; }
 	

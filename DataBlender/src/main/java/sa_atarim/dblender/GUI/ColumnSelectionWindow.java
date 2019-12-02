@@ -4,12 +4,12 @@ import java.awt.Dimension;
 import javaNK.util.GUI.swing.containers.Window;
 import sa_atarim.dblender.Constants;
 
-public class MainWindow extends Window
+public class ColumnSelectionWindow extends Window
 {
 	private static final long serialVersionUID = -7382314825689526910L;
-	private static final Dimension DIM = new Dimension(400, 300);
+	private static final Dimension DIM = new Dimension(700, 300);
 	
-	public MainWindow() {
+	public ColumnSelectionWindow(String title) {
 		super(Constants.PROGRAM_TITLE);
 	}
 

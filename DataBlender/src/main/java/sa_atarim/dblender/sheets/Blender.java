@@ -15,7 +15,7 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
-import sa_atarim.dblender.output.FileSpecifications;
+import sa_atarim.dblender.output.FileSpecification;
 import sa_atarim.dblender.output.OutputRequest;
 
 public class Blender
@@ -50,7 +50,7 @@ public class Blender
 	 * @throws IOException when the new file cannot be created due to bad path.
 	 */
 	public void blend(OutputRequest request) throws IOException {
-		List<FileSpecifications> files = request.getFiles();
+		List<FileSpecification> files = request.getFiles();
 		if (files.isEmpty()) return;
 		
 		XLSFile blendedFile = createEmptyFile(request);
@@ -60,10 +60,17 @@ public class Blender
 			integrate(files.get(i), blendedFile, request.getKeyColumn(), request.usesIntersection());
 		
 		//close all files
-		for (FileSpecifications specification : files) specification.getFile().close();
+		for (FileSpecification specification : files) specification.getFile().close();
 		blendedFile.close();
 	}
 	
+	/**
+	 * Create an empty file according to the given specification.
+	 * 
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 */
 	private XLSFile createEmptyFile(OutputRequest request) throws IOException {
 		Workbook workbook = new XSSFWorkbook();
 		workbook.createSheet(NEW_SHEET_NAME);
@@ -75,7 +82,7 @@ public class Blender
 		return new XLSFile(request.getFullPath(), false);
 	}
 	
-	private void duplicate(FileSpecifications origin, XLSFile destination) {
+	private void duplicate(FileSpecification origin, XLSFile destination) {
 		Sheet originSheet = origin.getFile().getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
@@ -110,7 +117,7 @@ public class Blender
 	}
 	
 	@SuppressWarnings("unchecked")
-	private void integrate(FileSpecifications origin, XLSFile destination, String keyColumn, boolean intersect) {
+	private void integrate(FileSpecification origin, XLSFile destination, String keyColumn, boolean intersect) {
 		Sheet originSheet = origin.getFile().getSheet();
 		Sheet destSheet = destination.getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
