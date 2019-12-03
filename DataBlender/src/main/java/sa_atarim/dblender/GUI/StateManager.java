@@ -3,6 +3,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
+import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState;
 
 public class StateManager
 {
@@ -13,7 +14,8 @@ public class StateManager
 	 * @author Niv Kor
 	 */
 	public static enum Substate {
-		INPUT(InputState.class);
+		INPUT(InputState.class),
+		COLUMN_SELECTION(ColumnSelectionState.class);
 		
 		private Class<? extends State> stateClass;
 		
@@ -23,7 +25,7 @@ public class StateManager
 		
 		/**
 		 * Create an instance of the state.
-		 * Every State instance needs a mutable window where it has the room to strech,
+		 * Every State instance needs a mutable window where it has the room to stretch,
 		 * and cannot exist without one.
 		 * A state can take place in more than one window simultaneously.
 		 * 
@@ -71,11 +73,21 @@ public class StateManager
 	 * 
 	 * @param window - The window that needs to contain the state
 	 * @param substate - The requested state to set
+	 * @return The state that had been applied.
 	 */
-	public static void setState(Window window, Substate substate) {
-		if (substate == null) return;
-		
-		State instance = substate.createInstance(window);
+	public static State setState(Window window, Substate substate) {
+		return setState(window, substate.createInstance(window));
+	}
+	
+	/**
+	 * Set a state on a window.
+	 * 
+	 * @param window - The window that needs to contain the state
+	 * @param stateInstance - The exact state instance to set
+	 * @return The state that had been applied.
+	 */
+	public static State setState(Window window, State stateInstance) {
+		if (stateInstance == null) return null;
 		
 		//find the correct window cache
 		WindowCache tempCache = null;
@@ -89,8 +101,10 @@ public class StateManager
 		}
 		
 		//apply state to window and update its window memory
-		window.applyState(instance);
-		tempCache.setCurrentState(instance);
+		window.applyState(stateInstance);
+		tempCache.setCurrentState(stateInstance);
+		
+		return stateInstance;
 	}
 	
 	/**

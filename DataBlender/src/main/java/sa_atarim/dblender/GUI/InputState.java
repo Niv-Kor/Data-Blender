@@ -5,18 +5,19 @@ import java.awt.FileDialog;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.concurrent.Callable;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javaNK.util.GUI.swing.components.InteractiveIcon;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
-import javaNK.util.files.ImageHandler;
 import javaNK.util.math.DimensionalHandler;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.GUI.StateManager.Substate;
+import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState;
+import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState.FileIndex;
+import sa_atarim.dblender.GUI.column_selection.ColumnSelectionWindow;
 import sa_atarim.dblender.error.ErrorMessage;
 import sa_atarim.dblender.output.DirectortTrimmer;
 import sa_atarim.dblender.output.FileSpecification;
@@ -24,7 +25,7 @@ import sa_atarim.dblender.output.OutputRequest;
 import sa_atarim.dblender.sheets.Blender;
 import sa_atarim.dblender.sheets.XLSFile;
 
-public class InputState extends State
+public class InputState extends State implements PropertyChangeListener
 {
 	private static final int DROP_AREA_HEIGHT = 40;
 	
@@ -32,33 +33,42 @@ public class InputState extends State
 	private Dimension dropAreaDim;
 	private DropArea fileDrop1, fileDrop2;
 	private InteractiveIcon emptyColumnSettings, filledColumnSettings;
+	private ColumnSelectionWindow columnSelectionWindow;
+	private ColumnSelectionState selectionState;
+	private XLSFile droppedFile1, droppedFile2;
+	private FileSpecification file1Specification, file2Specification;
+	private OutputRequest outputRequest;
+	private Blender blender;
 	
 	public InputState(Window window) {
 		super(window, 1);
 		
 		Dimension windowDim = window.getDimension();
 		this.gbc = new GridBagConstraints();
+		this.columnSelectionWindow = new ColumnSelectionWindow();
+		this.outputRequest = new OutputRequest();
+		this.blender = new Blender();
 		this.dropAreaDim = DimensionalHandler.adjust(windowDim, 70, 100);
-		this.emptyColumnSettings = new InteractiveIcon((ImageIcon) Constants.EMPTY_COLUMN_SETTINGS_ICON);
-		emptyColumnSettings.setHoverIcon((ImageIcon) Constants.HOVER_EMPTY_COLUMN_SETTINGS_ICON);
-		this.filledColumnSettings = new InteractiveIcon((ImageIcon) Constants.FILLED_COLUMN_SETTINGS_ICON);
-		filledColumnSettings.setHoverIcon((ImageIcon) Constants.HOVER_FILLED_COLUMN_SETTINGS_ICON);
 		
-		ImageIcon clearButton = ImageHandler.loadIcon("/icons/clear.png");
-		ImageIcon hoverClearButton = ImageHandler.loadIcon("/icons/hover_clear.png");
+		State state = Substate.COLUMN_SELECTION.createInstance(columnSelectionWindow);
+		this.selectionState = (ColumnSelectionState) state;
+		selectionState.subscribePropertyChange(this);
+		
+		this.emptyColumnSettings = new InteractiveIcon(Constants.Icons.EMPTY_COLUMN_SETTINGS);
+		emptyColumnSettings.setHoverIcon(Constants.Icons.HOVER_EMPTY_COLUMN_SETTINGS);
+		this.filledColumnSettings = new InteractiveIcon(Constants.Icons.FILLED_COLUMN_SETTINGS);
+		filledColumnSettings.setHoverIcon(Constants.Icons.HOVER_FILLED_COLUMN_SETTINGS);
+		
 		dropAreaDim.height = (int) DROP_AREA_HEIGHT;
 		createPanel(new GridBagLayout(), windowDim, window.getColor());
 		
 		//blender icon
-		InteractiveIcon blenderIcon = new InteractiveIcon((ImageIcon) Constants.BLENDER_ICON);
-		blenderIcon.setHoverIcon((ImageIcon) Constants.HOVER_BLENDER_ICON);
+		InteractiveIcon blenderIcon = new InteractiveIcon(Constants.Icons.BLENDER);
+		blenderIcon.setHoverIcon(Constants.Icons.HOVER_BLENDER);
 		blenderIcon.setFunction(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
 				try {
-					XLSFile droppedFile1 = fileDrop1.isOccupied() ? new XLSFile(fileDrop1.getPath(), false) : null;
-					XLSFile droppedFile2 = fileDrop2.isOccupied() ? new XLSFile(fileDrop2.getPath(), false) : null;
-					
 					//cannot blend
 					if (droppedFile1 == null || droppedFile2 == null) {
 						ErrorMessage.NO_FILES.pop();
@@ -66,7 +76,7 @@ public class InputState extends State
 					}
 					else {
 						String filePath = saveFileToDirectory();
-						processBlend(filePath, droppedFile1, droppedFile2);
+						processBlend(filePath);
 					}
 				}
 				catch (IOException e) { e.printStackTrace(); }
@@ -80,8 +90,9 @@ public class InputState extends State
 		
 		//file 1 drop area
 		String defaultDropText = "Drop a file here";
-		this.fileDrop1 = new DropArea(defaultDropText);
+		this.fileDrop1 = new DropArea(defaultDropText, "file 1 set");
 		fileDrop1.setPreferredSize(dropAreaDim);
+		fileDrop1.subscribePropertyChange(this);
 		
 		gbc.insets.top = 10;
 		gbc.gridx = 1;
@@ -89,12 +100,15 @@ public class InputState extends State
 		panes[0].add(fileDrop1, gbc);
 		
 		//file 1 clear button
-		InteractiveIcon clearFile1 = new InteractiveIcon(clearButton);
-		clearFile1.setHoverIcon(hoverClearButton);
+		InteractiveIcon clearFile1 = new InteractiveIcon(Constants.Icons.CLEAR_X);
+		clearFile1.setHoverIcon(Constants.Icons.HOVER_CLEAR_X);
 		clearFile1.setFunction(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
 				fileDrop1.setFile(null);
+				outputRequest.removeFile(file1Specification);
+				file1Specification = null;
+				selectionState.reset(FileIndex.FILE_1);
 				return null;
 			}
 		});
@@ -105,8 +119,9 @@ public class InputState extends State
 		panes[0].add(clearFile1, gbc);
 		
 		//file 2 drop area
-		this.fileDrop2 = new DropArea(defaultDropText);
+		this.fileDrop2 = new DropArea(defaultDropText, "file 2 set");
 		fileDrop2.setPreferredSize(dropAreaDim);
+		fileDrop2.subscribePropertyChange(this);
 		
 		gbc.insets.right = 0;
 		gbc.gridx = 1;
@@ -114,12 +129,15 @@ public class InputState extends State
 		panes[0].add(fileDrop2, gbc);
 		
 		//file 1 clear button
-		InteractiveIcon clearFile2 = new InteractiveIcon(clearButton);
-		clearFile2.setHoverIcon(hoverClearButton);
+		InteractiveIcon clearFile2 = new InteractiveIcon(Constants.Icons.CLEAR_X);
+		clearFile2.setHoverIcon(Constants.Icons.HOVER_CLEAR_X);
 		clearFile2.setFunction(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
 				fileDrop2.setFile(null);
+				outputRequest.removeFile(file2Specification);
+				file2Specification = null;
+				selectionState.reset(FileIndex.FILE_2);
 				return null;
 			}
 		});
@@ -131,6 +149,20 @@ public class InputState extends State
 		
 		//column settings
 		changeColumnSettingsIcon(false);
+		Callable<Void> columnsSelectionFunction = new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				if (droppedFile1 == null || droppedFile2 == null)
+					ErrorMessage.NO_FILES.pop();
+				else
+					StateManager.setState(columnSelectionWindow, selectionState);
+				
+				return null;
+			}
+		};
+		
+		emptyColumnSettings.setFunction(columnsSelectionFunction);
+		filledColumnSettings.setFunction(columnsSelectionFunction);
 	}
 	
 	private void changeColumnSettingsIcon(boolean filled) {
@@ -155,30 +187,56 @@ public class InputState extends State
 	    return path + name + "." + Constants.SAVED_FILE_TYPE;
 	}
 	
-	private void processBlend(String filePath, XLSFile file1, XLSFile file2) throws IOException {
-		Blender blender = new Blender();
+	private void processBlend(String filePath) throws IOException {
 		String directory = DirectortTrimmer.extractDirectory(filePath);
 		String fileName = DirectortTrimmer.extractFileName(filePath);
-		OutputRequest request = new OutputRequest(directory, fileName, "מק'ט", false);
 		
-		FileSpecification file1Specification = new FileSpecification(file1);
-		String[] file1ColNames = file1.getSheet().getColumnNames();
-		for (int i = 0; i < file1ColNames.length; i++)
-			file1Specification.addColumn(file1ColNames[i]);
+		//verify file path
+		if (directory != "" && fileName != "")
+			outputRequest.setFilePath(filePath);
 		
-		FileSpecification file2Specification = new FileSpecification(file2);
-		String[] file2ColNames = file2.getSheet().getColumnNames();
-		for (int i = 0; i < file2ColNames.length; i++)
-			file2Specification.addColumn(file2ColNames[i]);
-		
-		request.addFile(file1Specification);
-		request.addFile(file2Specification);
-		blender.blend(request);
+		//in case no directory has been selected
+		if (outputRequest.isValid()) blender.blend(outputRequest);
 	}
 
 	@Override
-	public void applyPanels() {
-		window.add(panes[0], BorderLayout.PAGE_START);
+	public void propertyChange(PropertyChangeEvent evt) {
+		try {
+			switch (evt.getPropertyName()) {
+				case "file 1 set":
+					String file1Path = (String) evt.getNewValue();
+					
+					if (file1Path != null) {
+						droppedFile1 = new XLSFile(file1Path, false);
+						file1Specification = new FileSpecification(droppedFile1);
+						outputRequest.addFile(file1Specification);
+						selectionState.addFile(droppedFile1, FileIndex.FILE_1);
+					}
+					break;
+				case "file 2 set":
+					String file2Path = (String) evt.getNewValue();
+					
+					if (file2Path != null) {
+						droppedFile2 = new XLSFile(file2Path, false);
+						file2Specification = new FileSpecification(droppedFile2);
+						outputRequest.addFile(file2Specification);
+						selectionState.addFile(droppedFile2, FileIndex.FILE_2);
+					}
+					break;
+				case "file 1 add": file1Specification.addColumn((String) evt.getNewValue()); break;
+				case "file 2 add": file2Specification.addColumn((String) evt.getNewValue()); break;
+				case "file 1 remove": file1Specification.removeColumn((String) evt.getNewValue()); break;
+				case "file 2 remove": file2Specification.removeColumn((String) evt.getNewValue()); break;
+				case "key column set": outputRequest.setKeyColumn((String) evt.getNewValue()); break;
+				case "intersection set": outputRequest.setIntersection((boolean) evt.getNewValue()); break;
+				default: return;
+			}
+		}
+		catch (IOException e) { System.err.println("Could not create " + Constants.SAVED_FILE_TYPE + " files."); }
 	}
 	
+	@Override
+	public void applyPanels() {
+		window.insertPanel(panes[0], BorderLayout.PAGE_START);
+	}
 }

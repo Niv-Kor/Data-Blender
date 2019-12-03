@@ -74,20 +74,21 @@ public class Blender
 	private XLSFile createEmptyFile(OutputRequest request) throws IOException {
 		Workbook workbook = new XSSFWorkbook();
 		workbook.createSheet(NEW_SHEET_NAME);
-		FileOutputStream fileOut = new FileOutputStream(request.getFullPath());
+		String filePath = request.getFilePath();
+		FileOutputStream fileOut = new FileOutputStream(filePath);
 		workbook.write(fileOut);
 		fileOut.close();
 		workbook.close();
 		
-		return new XLSFile(request.getFullPath(), false);
+		return new XLSFile(filePath, false);
 	}
 	
 	private void duplicate(FileSpecification origin, XLSFile destination) {
 		Sheet originSheet = origin.getFile().getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
-		String[] columns = originSheet.getColumnNames();
 		int rowCount = originSourceSheet.getPhysicalNumberOfRows();
+		int colIndex = 0;
 		
 		//create the rows in destination
 		for (int r = 0; r < rowCount; r++) destSourceSheet.createRow(r);
@@ -99,18 +100,18 @@ public class Blender
 		destSheetView.getSheetViewArray(0).setRightToLeft(rightToLeft);
 		
 		//iterate over every column
-		for (int c = 0; c < columns.length; c++) {
-			if (!origin.getColumns().contains(columns[c])) continue;
-			int colIndex = originSheet.getColumnIndex(columns[c]);
+		for (String column : origin.getColumns()) {
 			
 			//iterate over every row
 			for (int r = 0; r < rowCount; r++) {
 				XSSFRow originRow = originSourceSheet.getRow(r);
-				XSSFCell originCell = originRow.getCell(colIndex);
+				XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(column));
 				XSSFRow destRow = destSourceSheet.getRow(r);
 				XSSFCell destCell = destRow.createCell(colIndex);
 				copyCell(originCell, destCell);
 			}
+			
+			colIndex++;
 		}
 		
 		destination.write();
@@ -122,7 +123,6 @@ public class Blender
 		Sheet destSheet = destination.getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
-		String[] originColumns = originSheet.getColumnNames();
 		List<String> destColumns = Arrays.asList(destSheet.getColumnNames());
 		int destNewColIndex = destSourceSheet.getRow(destSheet.getFirstRow()).getPhysicalNumberOfCells();
 		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
@@ -183,16 +183,15 @@ public class Blender
 		}
 		
 		//iterate over every origin sheet column
-		for (int c = 0; c < originColumns.length; c++) {
-			if (!origin.getColumns().contains(originColumns[c])) continue;
-			else if (destColumns.contains(originColumns[c])) continue;
+		for (String colum : origin.getColumns()) {
+			if (destColumns.contains(colum)) continue;
 			
 			//get the next free column
 			int colIndex = destNewColIndex++;
 			
 			//insert the column name to the destination
 			XSSFRow originRow = originSourceSheet.getRow(originSheet.getFirstRow());
-			XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(originColumns[c]));
+			XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
 			XSSFRow destRow = destSourceSheet.getRow(destSheet.getFirstRow());
 			XSSFCell destCell = destRow.createCell(colIndex);
 			copyCell(originCell, destCell);
@@ -213,7 +212,7 @@ public class Blender
 						keyValsClone.remove(key);
 						
 						//insert the data to the destination
-						originCell = originRow.getCell(c);
+						originCell = originRow.getCell(originSheet.getColumnIndex(colum));
 						destRow = destSourceSheet.getRow(matchingRow);
 						destCell = destRow.createCell(colIndex);
 						copyCell(originCell, destCell);
@@ -223,7 +222,7 @@ public class Blender
 			}
 		}
 		
-		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
+//		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
 		destination.write();
 	}
 	
@@ -283,29 +282,17 @@ public class Blender
 	private void deleteUnnecessaryRows(Sheet sheet, int keyColumnIndex, Set<KeyTuple> intersectedKeys) {
 		XSSFSheet sourceSheet = sheet.getSource();
 		
-		for (int i = sheet.getFirstRow() + 1; i < sourceSheet.getLastRowNum(); i++) {
+		for (int i = sheet.getFirstRow() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
 			XSSFRow row = sourceSheet.getRow(i);
 			XSSFCell cell = row.getCell(keyColumnIndex);
 			Object cellValue = Sheet.getGenericCellValue(cell);
 			
 			//delete row
-			if (!containsValue(intersectedKeys, cellValue)) {
+			if (!intersectedKeys.contains(cellValue)) {
 				sheet.deleteRow(i);
 				i--;
 			}
 		}
-	}
-	
-	/**
-	 * @param set - A set of key values
-	 * @param value - The value to check
-	 * @return True if the set contains the value.
-	 */
-	private boolean containsValue(Set<KeyTuple> set, Object value) {
-		for (KeyTuple key : set)
-			if (key.valueEquals(value)) return true;
-
-		return false;
 	}
 	
 	/**

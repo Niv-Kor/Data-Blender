@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI;
+package sa_atarim.dblender.GUI.column_selection;
 import java.awt.Color;
 import java.awt.Dimension;
 import javaNK.util.GUI.swing.containers.Window;
@@ -7,9 +7,9 @@ import sa_atarim.dblender.Constants;
 public class ColumnSelectionWindow extends Window
 {
 	private static final long serialVersionUID = -7382314825689526910L;
-	private static final Dimension DIM = new Dimension(700, 300);
+	private static final Dimension DIM = new Dimension(450, 500);
 	
-	public ColumnSelectionWindow(String title) {
+	public ColumnSelectionWindow() {
 		super(Constants.PROGRAM_TITLE);
 	}
 

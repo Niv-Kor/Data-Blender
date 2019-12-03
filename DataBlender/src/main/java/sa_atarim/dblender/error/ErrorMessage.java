@@ -11,18 +11,18 @@ public enum ErrorMessage
 {
 	MULTIPLE_FILES("MULTIPLE FILES ERROR",
 				   "This area can only accept one file.",
-				   Constants.ERROR_ICON,
+				   Constants.Icons.ERROR,
 				   JOptionPane.ERROR_MESSAGE, 101),
 	
 	TYPE_NOT_SUPPORTED("UNSOPPORTED FILE ERROR",
 					   "The file type you entered is not supported.<br>"
 					 + "Supported types: xls, xlsx",
-					   Constants.ERROR_ICON,
+					   Constants.Icons.ERROR,
 					   JOptionPane.ERROR_MESSAGE, 102),
 	
 	NO_FILES("MISSING FILES ERROR",
 			 "The blender must receive exactly 2 files.",
-			 Constants.ERROR_ICON,
+			 Constants.Icons.ERROR,
 			 JOptionPane.ERROR_MESSAGE, 103);
 	
 	private static final Font FONT = FontHandler.load("Raleway", FontStyle.PLAIN, 14);

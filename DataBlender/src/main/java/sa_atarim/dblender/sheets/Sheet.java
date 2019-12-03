@@ -1,4 +1,5 @@
 package sa_atarim.dblender.sheets;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCell;
@@ -66,22 +67,36 @@ public class Sheet
 	}
 	
 	public void deleteRow(int rowIndex) {
-		xssfSheet.removeRow(xssfSheet.getRow(rowIndex));
-		xssfSheet.shiftRows(rowIndex + 1, xssfSheet.getLastRowNum(), -1);
 		
-	    for (int i = xssfSheet.getFirstRowNum(); i < xssfSheet.getLastRowNum() + 1; i++) {
-	    	XSSFRow row = xssfSheet.getRow(i); 
-	    	
-	    	if (row != null) {
-	    		long rRef = row.getCTRow().getR();
-	    		
-	    		for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
-	    			XSSFCell cell = row.getCell(c);
-	    			String cRef = cell.getCTCell().getR();
-	    			cell.getCTCell().setR(cRef.replaceAll("[0-9]", "") + rRef);
-	    		}
-	    	}
-	    }
+//		xssfSheet.removeRow(xssfSheet.getRow(rowIndex));
+//		xssfSheet.shiftRows(rowIndex + 1, xssfSheet.getLastRowNum(), -1);
+//		
+//	    for (int i = xssfSheet.getFirstRowNum(); i < xssfSheet.getLastRowNum() + 1; i++) {
+//	    	XSSFRow row = xssfSheet.getRow(i); 
+//	    	
+//	    	if (row != null) {
+//	    		long rRef = row.getCTRow().getR();
+//	    		
+//	    		for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+//	    			XSSFCell cell = row.getCell(c);
+//	    			String cRef = cell.getCTCell().getR();
+//	    			cell.getCTCell().setR(cRef.replaceAll("[0-9]", "") + rRef);
+//	    		}
+//	    	}
+//	    }
+	    
+	    xssfSheet.shiftRows(rowIndex + 1, xssfSheet.getLastRowNum() - 1, -1);
+
+	     for (int r = xssfSheet.getFirstRowNum(); r < xssfSheet.getLastRowNum() + 1; r++) {
+	      XSSFRow row = xssfSheet.getRow(r); 
+	      if (row != null) {
+	       long rRef = row.getCTRow().getR();
+	       for (Cell cell : row) {
+	        String cRef = ((XSSFCell) cell).getCTCell().getR();
+	        ((XSSFCell) cell).getCTCell().setR(cRef.replaceAll("[0-9]", "") + rRef);
+	       }
+	      }
+	     }
 	}
 	
 	public Object getGenericCellValue(int rowIndex, int cellIndex) {

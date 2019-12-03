@@ -14,7 +14,7 @@
 #   Set larger code cache with -XX:ReservedCodeCacheSize=
 # This output file may be truncated or incomplete.
 #
-#  Out of Memory Error (t:/workspace/open/src/hotspot/os/windows/os_windows.cpp:3254), pid=29800, tid=73184
+#  Out of Memory Error (t:/workspace/open/src/hotspot/os/windows/os_windows.cpp:3254), pid=28572, tid=77364
 #
 # JRE version:  (12.0.1+12) (build )
 # Java VM: Java HotSpot(TM) 64-Bit Server VM (12.0.1+12, mixed mode, aot, sharing, tiered, compressed oops, g1 gc, windows-amd64)
@@ -26,13 +26,13 @@
 Command Line: -Dfile.encoding=UTF-8 sa_atarim.dblender.Driver
 
 Host: Intel(R) Core(TM) i5-4460  CPU @ 3.20GHz, 4 cores, 19G,  Windows 10 , 64 bit Build 18362 (10.0.18362.329)
-Time: Sun Dec  1 22:18:22 2019 Jerusalem Standard Time elapsed time: 0 seconds (0d 0h 0m 0s)
+Time: Tue Dec  3 02:39:30 2019 Jerusalem Standard Time elapsed time: 0 seconds (0d 0h 0m 0s)
 
 ---------------  T H R E A D  ---------------
 
-Current thread (0x0000017a3f91b000):  JavaThread "Unknown thread" [_thread_in_vm, id=73184, stack(0x000000321b900000,0x000000321ba00000)]
+Current thread (0x0000027331fdb000):  JavaThread "Unknown thread" [_thread_in_vm, id=77364, stack(0x000000b7c3900000,0x000000b7c3a00000)]
 
-Stack: [0x000000321b900000,0x000000321ba00000]
+Stack: [0x000000b7c3900000,0x000000b7c3a00000]
 Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
 V  [jvm.dll+0x63948a]
 V  [jvm.dll+0x78b31f]
@@ -63,22 +63,22 @@ C  [ntdll.dll+0x6ced1]
 ---------------  P R O C E S S  ---------------
 
 Threads class SMR info:
-_java_thread_list=0x00007ffc975648e8, length=0, elements={
+_java_thread_list=0x00007ffcc5a948e8, length=0, elements={
 }
 
 Java Threads: ( => current thread )
 
 Other Threads:
-  0x0000017a3f990800 GCTaskThread "GC Thread#0" [stack: 0x000000321ba00000,0x000000321bb00000] [id=63496]
-  0x0000017a3f9b1800 ConcurrentGCThread "G1 Main Marker" [stack: 0x000000321bb00000,0x000000321bc00000] [id=65828]
-  0x0000017a3f9b3000 ConcurrentGCThread "G1 Conc#0" [stack: 0x000000321bc00000,0x000000321bd00000] [id=45264]
+  0x0000027332050800 GCTaskThread "GC Thread#0" [stack: 0x000000b7c3a00000,0x000000b7c3b00000] [id=42388]
+  0x0000027332073000 ConcurrentGCThread "G1 Main Marker" [stack: 0x000000b7c3b00000,0x000000b7c3c00000] [id=59044]
+  0x0000027332074000 ConcurrentGCThread "G1 Conc#0" [stack: 0x000000b7c3c00000,0x000000b7c3d00000] [id=38648]
 
-[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffc96d97a37]
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffcc52c7a37]
 
 VM state:not at safepoint (not fully initialized)
 
 VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
-[0x0000017a3f917250] Heap_lock - owner thread: 0x0000017a3f91b000
+[0x0000027331fd6780] Heap_lock - owner thread: 0x0000027331fdb000
 
 Heap address: 0x00000006c0e00000, size: 5106 MB, Compressed Oops mode: Non-zero based: 0x00000006c0e00000
 Narrow klass base: 0x0000000000000000, Narrow klass shift: 0
@@ -105,37 +105,37 @@ Dynamic libraries:
 0x00007ffcf02e0000 - 0x00007ffcf0392000 	C:\WINDOWS\System32\KERNEL32.DLL
 0x00007ffcef020000 - 0x00007ffcef2c3000 	C:\WINDOWS\System32\KERNELBASE.dll
 0x00007ffceffa0000 - 0x00007ffcf009a000 	C:\WINDOWS\System32\ucrtbase.dll
-0x00007ffcd6950000 - 0x00007ffcd6966000 	C:\Program Files\Java\jdk-12.0.1\bin\VCRUNTIME140.dll
-0x00007ffcd69c0000 - 0x00007ffcd69d8000 	C:\Program Files\Java\jdk-12.0.1\bin\jli.dll
+0x00007ffce00e0000 - 0x00007ffce00f6000 	C:\Program Files\Java\jdk-12.0.1\bin\VCRUNTIME140.dll
+0x00007ffcd9880000 - 0x00007ffcd9898000 	C:\Program Files\Java\jdk-12.0.1\bin\jli.dll
 0x00007ffcf0c00000 - 0x00007ffcf0ca3000 	C:\WINDOWS\System32\ADVAPI32.dll
 0x00007ffcf1520000 - 0x00007ffcf15be000 	C:\WINDOWS\System32\msvcrt.dll
 0x00007ffcf05d0000 - 0x00007ffcf0667000 	C:\WINDOWS\System32\sechost.dll
 0x00007ffcf0110000 - 0x00007ffcf0230000 	C:\WINDOWS\System32\RPCRT4.dll
 0x00007ffcf03a0000 - 0x00007ffcf0534000 	C:\WINDOWS\System32\USER32.dll
 0x00007ffceeff0000 - 0x00007ffcef011000 	C:\WINDOWS\System32\win32u.dll
+0x00007ffce2050000 - 0x00007ffce22d5000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.18362.476_none_e6c4b11b130f2595\COMCTL32.dll
 0x00007ffcf0cb0000 - 0x00007ffcf0cd6000 	C:\WINDOWS\System32\GDI32.dll
+0x00007ffcf08a0000 - 0x00007ffcf0bd6000 	C:\WINDOWS\System32\combase.dll
 0x00007ffcef300000 - 0x00007ffcef494000 	C:\WINDOWS\System32\gdi32full.dll
 0x00007ffcefdb0000 - 0x00007ffcefe4e000 	C:\WINDOWS\System32\msvcp_win.dll
-0x00007ffce2050000 - 0x00007ffce22d5000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.18362.476_none_e6c4b11b130f2595\COMCTL32.dll
-0x00007ffcf08a0000 - 0x00007ffcf0bd6000 	C:\WINDOWS\System32\combase.dll
 0x00007ffcef500000 - 0x00007ffcef580000 	C:\WINDOWS\System32\bcryptPrimitives.dll
 0x00007ffce6530000 - 0x00007ffce653a000 	C:\WINDOWS\SYSTEM32\VERSION.dll
 0x00007ffcf18c0000 - 0x00007ffcf18ee000 	C:\WINDOWS\System32\IMM32.DLL
-0x00007ffcd5ad0000 - 0x00007ffcd5b7a000 	C:\Program Files\Java\jdk-12.0.1\bin\msvcp140.dll
-0x00007ffc96a90000 - 0x00007ffc97604000 	C:\Program Files\Java\jdk-12.0.1\bin\server\jvm.dll
+0x00007ffcd95f0000 - 0x00007ffcd969a000 	C:\Program Files\Java\jdk-12.0.1\bin\msvcp140.dll
+0x00007ffcc4fc0000 - 0x00007ffcc5b34000 	C:\Program Files\Java\jdk-12.0.1\bin\server\jvm.dll
 0x00007ffcf0540000 - 0x00007ffcf0548000 	C:\WINDOWS\System32\PSAPI.DLL
+0x00007ffce1f80000 - 0x00007ffce1fa4000 	C:\WINDOWS\SYSTEM32\WINMM.dll
 0x00007ffce2660000 - 0x00007ffce2669000 	C:\WINDOWS\SYSTEM32\WSOCK32.dll
 0x00007ffcf1630000 - 0x00007ffcf169f000 	C:\WINDOWS\System32\WS2_32.dll
-0x00007ffce1f80000 - 0x00007ffce1fa4000 	C:\WINDOWS\SYSTEM32\WINMM.dll
 0x00007ffce2020000 - 0x00007ffce204d000 	C:\WINDOWS\SYSTEM32\WINMMBASE.dll
 0x00007ffcf00c0000 - 0x00007ffcf010a000 	C:\WINDOWS\System32\cfgmgr32.dll
 0x00007ffceefd0000 - 0x00007ffceefe1000 	C:\WINDOWS\System32\kernel.appcore.dll
-0x00007ffcd6860000 - 0x00007ffcd6871000 	C:\Program Files\Java\jdk-12.0.1\bin\verify.dll
+0x00007ffcd9860000 - 0x00007ffcd9871000 	C:\Program Files\Java\jdk-12.0.1\bin\verify.dll
 0x00007ffce9820000 - 0x00007ffce9a14000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
 0x00007ffce9390000 - 0x00007ffce93ba000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
-0x00007ffcd6830000 - 0x00007ffcd6856000 	C:\Program Files\Java\jdk-12.0.1\bin\java.dll
-0x00007ffcd67f0000 - 0x00007ffcd6807000 	C:\Program Files\Java\jdk-12.0.1\bin\zip.dll
-0x00007ffce7860000 - 0x00007ffce786a000 	C:\Program Files\Java\jdk-12.0.1\bin\jimage.dll
+0x00007ffcd95c0000 - 0x00007ffcd95e6000 	C:\Program Files\Java\jdk-12.0.1\bin\java.dll
+0x00007ffcd95a0000 - 0x00007ffcd95b7000 	C:\Program Files\Java\jdk-12.0.1\bin\zip.dll
+0x00007ffce8ce0000 - 0x00007ffce8cea000 	C:\Program Files\Java\jdk-12.0.1\bin\jimage.dll
 
 dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
 symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Java\jdk-12.0.1\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.18362.476_none_e6c4b11b130f2595;C:\Program Files\Java\jdk-12.0.1\bin\server
@@ -186,8 +186,8 @@ OS: Windows 10 , 64 bit Build 18362 (10.0.18362.329)
 
 CPU:total 4 (initial active 4) (4 cores per cpu, 1 threads per core) family 6 model 60 stepping 3, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, avx2, aes, clmul, erms, lzcnt, tsc, tscinvbit, bmi1, bmi2, fma
 
-Memory: 4k page, system-wide physical 20418M (5648M free)
-TotalPageFile size 81820M (AvailPageFile size 209M)
+Memory: 4k page, system-wide physical 20418M (9296M free)
+TotalPageFile size 81858M (AvailPageFile size 224M)
 current process WorkingSet (physical memory assigned to process): 10M, peak: 10M
 current process commit charge ("private bytes"): 52M, peak: 372M
 

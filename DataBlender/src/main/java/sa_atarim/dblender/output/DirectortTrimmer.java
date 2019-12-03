@@ -7,7 +7,8 @@ public class DirectortTrimmer
 	 * @return The file type (without the period).
 	 */
 	public static String extractFileExtension(String path) {
-		return path.substring(path.indexOf('.') + 1);
+		try { return path.substring(path.indexOf('.') + 1); }
+		catch (StringIndexOutOfBoundsException e) { return ""; }
 	}
 	
 	/**
@@ -15,7 +16,8 @@ public class DirectortTrimmer
 	 * @return The name of the file (without extension).
 	 */
 	public static String extractFileName(String path) {
-		return path.substring(path.lastIndexOf(getSlashVersion(path)) + 1, path.indexOf('.'));
+		try { return path.substring(path.lastIndexOf(getSlashVersion(path)) + 1, path.indexOf('.')); }
+		catch (StringIndexOutOfBoundsException e) { return ""; }
 	}
 	
 	/**
@@ -23,7 +25,8 @@ public class DirectortTrimmer
 	 * @return The name of the file (without extension).
 	 */
 	public static String extractDirectory(String path) {
-		return path.substring(0, path.lastIndexOf(getSlashVersion(path)));
+		try { return path.substring(0, path.lastIndexOf(getSlashVersion(path))); }
+		catch (StringIndexOutOfBoundsException e) { return ""; }
 	}
 	
 	private static char getSlashVersion(String path) {

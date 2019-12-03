@@ -8,6 +8,8 @@ import java.awt.datatransfer.Transferable;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.File;
 import java.util.List;
 import javax.swing.JTextPane;
@@ -65,7 +67,7 @@ public class DropArea extends JTextPane
 						ErrorMessage.TYPE_NOT_SUPPORTED.pop();
 					else {
 						filePath = path;
-						dropArea.setFile(DirectortTrimmer.extractFileName(path));
+						dropArea.setFile(path);
 					}
 				}
 	        }
@@ -161,17 +163,20 @@ public class DropArea extends JTextPane
 	private static final float COMPRESSED_FONT_SCALE = .8f;
 	
 	private CustomizedDropTarget dropTarget;
-	private String defaultText;
+	private String defaultText, propertyChangeCode;
 	private Color areaColor, brightAreaColor;
+	private PropertyChangeSupport propertyChange;
 
 	/**
 	 * @param defaultText - The text to show as default before anything is dropped
 	 */
-	public DropArea(String defaultText) {
+	public DropArea(String defaultText, String propertyChangeCode) {
 		this.dropTarget = new CustomizedDropTarget(this);
 		this.defaultText = defaultText;
 		this.areaColor = EMPTY_COLOR;
 		this.brightAreaColor = BRIGHT_EMPTY_COLOR;
+		this.propertyChange = new PropertyChangeSupport(this);
+		this.propertyChangeCode = propertyChangeCode;
 		
 		setEditable(false);
 		setHighlighter(null);
@@ -206,7 +211,9 @@ public class DropArea extends JTextPane
 	 * 
 	 * @param fileName - The name of the file
 	 */
-	public void setFile(String fileName) {
+	public void setFile(String filePath) {
+		String fileName = (filePath != null) ? DirectortTrimmer.extractFileName(filePath) : null;
+		
 		if (fileName != null) {
 			this.areaColor = OCCUPIED_COLOR;
 			this.brightAreaColor = BRIGHT_OCCUPIED_COLOR;
@@ -221,6 +228,13 @@ public class DropArea extends JTextPane
 			setText(defaultText);
 			dropTarget.clear();
 		}
+		
+		//send the file path to the listeners
+		propertyChange.firePropertyChange(propertyChangeCode, "", filePath);
+	}
+	
+	public void subscribePropertyChange(PropertyChangeListener listener) {
+		propertyChange.addPropertyChangeListener(listener);
 	}
 	
 	private void calcMaxCharsPerLine() {
