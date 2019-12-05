@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI;
+package sa_atarim.dblender.GUI.windows;
 import java.awt.Color;
 import java.awt.Dimension;
 import javaNK.util.GUI.swing.containers.Window;

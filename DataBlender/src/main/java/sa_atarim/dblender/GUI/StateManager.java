@@ -3,7 +3,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
-import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState;
+import sa_atarim.dblender.GUI.states.ColumnSelectionState;
+import sa_atarim.dblender.GUI.states.InputState;
 
 public class StateManager
 {

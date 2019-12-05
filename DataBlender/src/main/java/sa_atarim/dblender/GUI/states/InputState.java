@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI;
+package sa_atarim.dblender.GUI.states;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FileDialog;
@@ -12,17 +12,18 @@ import java.util.concurrent.Callable;
 import javaNK.util.GUI.swing.components.InteractiveIcon;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
+import javaNK.util.IO.DirectortTrimmer;
 import javaNK.util.math.DimensionalHandler;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.GUI.DropArea;
+import sa_atarim.dblender.GUI.StateManager;
 import sa_atarim.dblender.GUI.StateManager.Substate;
-import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState;
-import sa_atarim.dblender.GUI.column_selection.ColumnSelectionState.FileIndex;
-import sa_atarim.dblender.GUI.column_selection.ColumnSelectionWindow;
-import sa_atarim.dblender.error.ErrorMessage;
-import sa_atarim.dblender.output.DirectortTrimmer;
+import sa_atarim.dblender.GUI.states.ColumnSelectionState.FileIndex;
+import sa_atarim.dblender.GUI.windows.ColumnSelectionWindow;
+import sa_atarim.dblender.error.ErrorPopup;
+import sa_atarim.dblender.output.Blender;
 import sa_atarim.dblender.output.FileSpecification;
 import sa_atarim.dblender.output.OutputRequest;
-import sa_atarim.dblender.sheets.Blender;
 import sa_atarim.dblender.sheets.XLSFile;
 
 public class InputState extends State implements PropertyChangeListener
@@ -71,7 +72,7 @@ public class InputState extends State implements PropertyChangeListener
 				try {
 					//cannot blend
 					if (droppedFile1 == null || droppedFile2 == null) {
-						ErrorMessage.NO_FILES.pop();
+						ErrorPopup.NO_FILES.pop();
 						return null;
 					}
 					else {
@@ -105,10 +106,7 @@ public class InputState extends State implements PropertyChangeListener
 		clearFile1.setFunction(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
-				fileDrop1.setFile(null);
-				outputRequest.removeFile(file1Specification);
-				file1Specification = null;
-				selectionState.reset(FileIndex.FILE_1);
+				clearFile(FileIndex.FILE_1);
 				return null;
 			}
 		});
@@ -134,10 +132,7 @@ public class InputState extends State implements PropertyChangeListener
 		clearFile2.setFunction(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
-				fileDrop2.setFile(null);
-				outputRequest.removeFile(file2Specification);
-				file2Specification = null;
-				selectionState.reset(FileIndex.FILE_2);
+				clearFile(FileIndex.FILE_2);
 				return null;
 			}
 		});
@@ -153,7 +148,7 @@ public class InputState extends State implements PropertyChangeListener
 			@Override
 			public Void call() throws Exception {
 				if (droppedFile1 == null || droppedFile2 == null)
-					ErrorMessage.NO_FILES.pop();
+					ErrorPopup.NO_FILES.pop();
 				else
 					StateManager.setState(columnSelectionWindow, selectionState);
 				
@@ -203,36 +198,71 @@ public class InputState extends State implements PropertyChangeListener
 	public void propertyChange(PropertyChangeEvent evt) {
 		try {
 			switch (evt.getPropertyName()) {
-				case "file 1 set":
-					String file1Path = (String) evt.getNewValue();
+				//change the first file
+				case "file 1 set": setFile(FileIndex.FILE_1, (String) evt.getNewValue()); break;
 					
-					if (file1Path != null) {
-						droppedFile1 = new XLSFile(file1Path, false);
-						file1Specification = new FileSpecification(droppedFile1);
-						outputRequest.addFile(file1Specification);
-						selectionState.addFile(droppedFile1, FileIndex.FILE_1);
-					}
-					break;
-				case "file 2 set":
-					String file2Path = (String) evt.getNewValue();
+				//change the second file
+				case "file 2 set": setFile(FileIndex.FILE_2, (String) evt.getNewValue()); break;
 					
-					if (file2Path != null) {
-						droppedFile2 = new XLSFile(file2Path, false);
-						file2Specification = new FileSpecification(droppedFile2);
-						outputRequest.addFile(file2Specification);
-						selectionState.addFile(droppedFile2, FileIndex.FILE_2);
-					}
-					break;
+				//add a column to the first file's specification
 				case "file 1 add": file1Specification.addColumn((String) evt.getNewValue()); break;
+				
+				//add a column to the second file's specification
 				case "file 2 add": file2Specification.addColumn((String) evt.getNewValue()); break;
+				
+				//remove a column from the first file's specification
 				case "file 1 remove": file1Specification.removeColumn((String) evt.getNewValue()); break;
+				
+				//remove a column from the second file's specification
 				case "file 2 remove": file2Specification.removeColumn((String) evt.getNewValue()); break;
+				
+				//change the key column
 				case "key column set": outputRequest.setKeyColumn((String) evt.getNewValue()); break;
+				
+				//toggle between intersection modes
 				case "intersection set": outputRequest.setIntersection((boolean) evt.getNewValue()); break;
 				default: return;
 			}
 		}
 		catch (IOException e) { System.err.println("Could not create " + Constants.SAVED_FILE_TYPE + " files."); }
+	}
+	
+	private void clearFile(FileIndex fileIndex) {
+		switch (fileIndex) {
+			case FILE_1:
+				fileDrop1.setFile(null);
+				outputRequest.removeFile(file1Specification);
+				file1Specification = null;
+				selectionState.reset(FileIndex.FILE_1);
+				break;
+			case FILE_2:
+				fileDrop2.setFile(null);
+				outputRequest.removeFile(file2Specification);
+				file2Specification = null;
+				selectionState.reset(FileIndex.FILE_2);
+				break;
+		}
+	}
+	
+	private void setFile(FileIndex fileIndex, String filePath) throws IOException {
+		if (filePath == null) return;
+		
+		switch (fileIndex) {
+			case FILE_1:
+				outputRequest.removeFile(file1Specification);
+				droppedFile1 = new XLSFile(filePath);
+				file1Specification = new FileSpecification(droppedFile1);
+				outputRequest.addFile(file1Specification);
+				selectionState.addFile(droppedFile1, FileIndex.FILE_1);
+				break;
+			case FILE_2:
+				outputRequest.removeFile(file2Specification);
+				droppedFile2 = new XLSFile(filePath);
+				file2Specification = new FileSpecification(droppedFile2);
+				outputRequest.addFile(file2Specification);
+				selectionState.addFile(droppedFile2, FileIndex.FILE_2);
+				break;
+		}
 	}
 	
 	@Override

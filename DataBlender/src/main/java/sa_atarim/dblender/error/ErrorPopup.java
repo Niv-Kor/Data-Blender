@@ -7,7 +7,7 @@ import javaNK.util.files.FontHandler;
 import javaNK.util.files.FontHandler.FontStyle;
 import sa_atarim.dblender.Constants;
 
-public enum ErrorMessage
+public enum ErrorPopup
 {
 	MULTIPLE_FILES("MULTIPLE FILES ERROR",
 				   "This area can only accept one file.",
@@ -39,7 +39,7 @@ public enum ErrorMessage
 	 * @param msgType - JOptionPane constant
 	 * @param errorIndex - The index to in the title
 	 */
-	private ErrorMessage(String title, String msg, Icon icon, int msgType, int errorIndex) {
+	private ErrorPopup(String title, String msg, Icon icon, int msgType, int errorIndex) {
 		String errorTitle = title + ":";
 		this.message = new JLabel("<html>" + errorTitle + "<br><br>" + msg + "</html>");
 		this.type = msgType;

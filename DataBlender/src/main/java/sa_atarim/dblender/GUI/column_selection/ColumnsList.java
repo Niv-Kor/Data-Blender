@@ -9,7 +9,7 @@ import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
 
-public class ColumnList extends JScrollPane
+public class ColumnsList extends JScrollPane
 {
 	private static class ListEntryCellRenderer extends JLabel implements ListCellRenderer<ListEntry>
 	{
@@ -42,7 +42,7 @@ public class ColumnList extends JScrollPane
 	private DefaultListModel<ListEntry> listModel;
 	private JList<ListEntry> list;
 	
-	public ColumnList() {
+	public ColumnsList() {
 		this.list = new JList<ListEntry>();
 		this.listModel = new DefaultListModel<ListEntry>();
 		

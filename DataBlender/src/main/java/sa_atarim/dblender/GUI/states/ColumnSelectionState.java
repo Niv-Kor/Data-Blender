@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI.column_selection;
+package sa_atarim.dblender.GUI.states;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -20,6 +20,8 @@ import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
 import javaNK.util.math.DimensionalHandler;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.GUI.column_selection.ColumnsList;
+import sa_atarim.dblender.GUI.column_selection.ListEntry;
 import sa_atarim.dblender.GUI.column_selection.ListEntry.EntryIcon;
 import sa_atarim.dblender.sheets.XLSFile;
 
@@ -36,7 +38,7 @@ public class ColumnSelectionState extends State
 		}
 	}
 	
-	private ColumnList file1List, file2List, combinedList;
+	private ColumnsList file1List, file2List, combinedList;
 	private JComboBox<String> keyColumnDropdown;
 	private PropertyChangeSupport propertyChange;
 	private JCheckBox intersectBox;
@@ -55,7 +57,7 @@ public class ColumnSelectionState extends State
 		northWest.setPreferredSize(subPanelDim);
 		northWest.setBackground(Color.GREEN);
 		
-		this.file1List = new ColumnList();
+		this.file1List = new ColumnsList();
 		file1List.setPreferredSize(fileListDim);
 		gbc.gridx = 0;
 		gbc.gridy = 0;
@@ -67,7 +69,7 @@ public class ColumnSelectionState extends State
 		southWest.setPreferredSize(subPanelDim);
 		southWest.setBackground(Color.BLUE);
 		
-		this.file2List = new ColumnList();
+		this.file2List = new ColumnsList();
 		file2List.setPreferredSize(fileListDim);
 		gbc.gridx = 0;
 		gbc.gridy = 0;
@@ -81,7 +83,7 @@ public class ColumnSelectionState extends State
 		createPanel(new GridBagLayout(), panelDim, Color.ORANGE);
 		
 			//combined list
-			this.combinedList = new ColumnList();
+			this.combinedList = new ColumnsList();
 			combinedList.setPreferredSize(combinedListDim);
 			
 			gbc.insets.top = 15;
@@ -173,7 +175,7 @@ public class ColumnSelectionState extends State
 		reset(fileIndex);
 		
 		String[] columnNames = file.getSheet().getColumnNames();
-		ColumnList list;
+		ColumnsList list;
 		
 		switch (fileIndex) {
 			case FILE_1: list = file1List; break;
@@ -363,15 +365,18 @@ public class ColumnSelectionState extends State
 	}
 	
 	public void reset(FileIndex fileIndex) {
+		//clear the combined list
+		combinedList.selectAll();
+		shiftBack();
+		intersectBox.setSelected(false);
+		keyColumnDropdown.removeAllItems();
+		
+		//clear the specified file list
 		switch (fileIndex) {
 			case FILE_1: file1List.removeAllEntries(); break;
 			case FILE_2: file2List.removeAllEntries(); break;
 		}
 		
-		combinedList.selectAll();
-		shiftBack();
-		intersectBox.setSelected(false);
-		keyColumnDropdown.removeAllItems();
 		suggestCandidates();
 		manageGrayedOut();
 		refresh();

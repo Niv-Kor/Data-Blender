@@ -1,4 +1,4 @@
-package sa_atarim.dblender.sheets;
+package sa_atarim.dblender.output;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -15,39 +15,21 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
-import sa_atarim.dblender.output.FileSpecification;
-import sa_atarim.dblender.output.OutputRequest;
+import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.sheets.SheetModifier;
+import sa_atarim.dblender.sheets.XLSFile;
+import sa_atarim.dblender.sheets.key_column.KeyTuple;
+import sa_atarim.dblender.sheets.key_column.KeyTupleSet;
 
 public class Blender
 {
-	private static class KeyTuple
-	{
-		public int rowIndex;
-		public Object value;
-		
-		public static KeyTuple create(int rowIndex, XSSFCell cell) {
-			return new KeyTuple(rowIndex, Sheet.getGenericCellValue(cell));
-		}
-		
-		private KeyTuple(int row, Object val) {
-			this.rowIndex = row;
-			this.value = val;
-		}
-		
-		public boolean valueEquals(Object other) {
-			String otherVal = (String) other;
-			String thisVal = (String) value;
-			return thisVal.equals(otherVal);
-		}
-	}
-	
-	private static final String NEW_SHEET_NAME = "Data Blender";
+	private static final String NEW_SHEET_NAME = Constants.PROGRAM_NAME + " new sheet";
 	
 	/**
-	 * Blend multiple files into one new file.
+	 * Blend multiple sheets into one new sheet.
 	 * 
 	 * @param request - Specifications for the output file
-	 * @throws IOException when the new file cannot be created due to bad path.
+	 * @throws IOException When the new file cannot be created due to bad path.
 	 */
 	public void blend(OutputRequest request) throws IOException {
 		List<FileSpecification> files = request.getFiles();
@@ -67,9 +49,9 @@ public class Blender
 	/**
 	 * Create an empty file according to the given specification.
 	 * 
-	 * @param request
-	 * @return
-	 * @throws IOException
+	 * @param request - A specification of the file's properties
+	 * @return The newly created file.
+	 * @throws IOException When the new file cannot be created due to bad path.
 	 */
 	private XLSFile createEmptyFile(OutputRequest request) throws IOException {
 		Workbook workbook = new XSSFWorkbook();
@@ -80,11 +62,19 @@ public class Blender
 		fileOut.close();
 		workbook.close();
 		
-		return new XLSFile(filePath, false);
+		return new XLSFile(filePath);
 	}
 	
+	/**
+	 * Duplicate a sheet into a new clean sheet.
+	 * Only the specified columns of the origin sheet will be copied,
+	 * and their indices might change accordingly.
+	 * 
+	 * @param origin - The specification of the sheet to copy
+	 * @param destination - The sheet to copy into
+	 */
 	private void duplicate(FileSpecification origin, XLSFile destination) {
-		Sheet originSheet = origin.getFile().getSheet();
+		SheetModifier originSheet = origin.getFile().getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
 		int rowCount = originSourceSheet.getPhysicalNumberOfRows();
@@ -117,46 +107,55 @@ public class Blender
 		destination.write();
 	}
 	
-	@SuppressWarnings("unchecked")
+	/**
+	 * Integrate an origin sheet into the destination sheet.
+	 * Both files must have the key column, so that the integrated sheet looks at the key column
+	 * of the destination sheet and matches for its own rows into the correct indices. 
+	 * 
+	 * @param origin - The origin sheet to integrate (disassembled sheet)
+	 * @param destination - The sheet that's being integrated with (base sheet)
+	 * @param keyColumn - The column that the integration is based on (both sheets must have it)
+	 * @param intersect - True to delete rows where the key value is not common for both sheets
+	 */
 	private void integrate(FileSpecification origin, XLSFile destination, String keyColumn, boolean intersect) {
-		Sheet originSheet = origin.getFile().getSheet();
-		Sheet destSheet = destination.getSheet();
+		SheetModifier originSheet = origin.getFile().getSheet();
+		SheetModifier destSheet = destination.getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
 		List<String> destColumns = Arrays.asList(destSheet.getColumnNames());
-		int destNewColIndex = destSourceSheet.getRow(destSheet.getFirstRow()).getPhysicalNumberOfCells();
+		int destNewColIndex = destSourceSheet.getRow(destSheet.headerRowIndex()).getPhysicalNumberOfCells();
 		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
 		int originKeyColIndex = originSheet.getColumnIndex(keyColumn);
-		Set<KeyTuple> finalKeyVals;
+		KeyTupleSet finalKeyVals;
 		
 		//retrieve the origin key values as a set
-		Set<KeyTuple> originKeyVals = new HashSet<KeyTuple>();
+		KeyTupleSet originKeyVals = new KeyTupleSet();
 		
-		for (int r = originSheet.getFirstRow() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
+		for (int r = originSheet.headerRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
 			originKeyVals.add(KeyTuple.create(r, keyCell));
 		}
 		
 		//retrieve the destination key values as a set
-		Set<KeyTuple> destKeyVals = new HashSet<KeyTuple>();
+		KeyTupleSet destKeyVals = new KeyTupleSet();
 		
-		for (int r = destSheet.getFirstRow() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
+		for (int r = destSheet.headerRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
 			destKeyVals.add(KeyTuple.create(r, keyCell));
 		}
 		
 		if (intersect) {
 			//create an intersection of the two sets
-			finalKeyVals = intersectKeySets(destKeyVals, originKeyVals);
+			finalKeyVals = destKeyVals.intersect(originKeyVals);
 		}
 		else {
 			//create a set that's exclusive for the origin key values
-			Set<KeyTuple> exclusiveOriginKeyVals = new HashSet<KeyTuple>(originKeyVals);
+			KeyTupleSet exclusiveOriginKeyVals = new KeyTupleSet(originKeyVals);
 			Queue<KeyTuple> keysToRemove = new LinkedList<KeyTuple>();
 			Stack<KeyTuple> keysStack = new Stack<KeyTuple>();
 			
 			for (KeyTuple key : destKeyVals) {
-				KeyTuple similarValue = getSimilarValue(exclusiveOriginKeyVals, key.value);
+				KeyTuple similarValue = exclusiveOriginKeyVals.getSimilarValue(key.value);
 				if (similarValue != null) keysToRemove.add(similarValue);
 			}
 			
@@ -173,12 +172,12 @@ public class Blender
 				destCell.setCellValue((String) keyValue);
 				
 				//update new row indexes on the exclusive origin key values
-				KeyTuple exclusiveKeyTuple = getSimilarValue(exclusiveOriginKeyVals, keyValue);
+				KeyTuple exclusiveKeyTuple = exclusiveOriginKeyVals.getSimilarValue(keyValue);
 				exclusiveKeyTuple.rowIndex = r;
 			}
 			
 			//use the union of both files' key values
-			finalKeyVals = new HashSet<KeyTuple>(destKeyVals);
+			finalKeyVals = new KeyTupleSet(destKeyVals);
 			finalKeyVals.addAll(exclusiveOriginKeyVals);
 		}
 		
@@ -190,9 +189,9 @@ public class Blender
 			int colIndex = destNewColIndex++;
 			
 			//insert the column name to the destination
-			XSSFRow originRow = originSourceSheet.getRow(originSheet.getFirstRow());
+			XSSFRow originRow = originSourceSheet.getRow(originSheet.headerRowIndex());
 			XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
-			XSSFRow destRow = destSourceSheet.getRow(destSheet.getFirstRow());
+			XSSFRow destRow = destSourceSheet.getRow(destSheet.headerRowIndex());
 			XSSFCell destCell = destRow.createCell(colIndex);
 			copyCell(originCell, destCell);
 			
@@ -200,7 +199,7 @@ public class Blender
 			Set<KeyTuple> keyValsClone = new HashSet<KeyTuple>(finalKeyVals);
 			
 			//iterate over every row of the origin and match it with the destination
-			for (int r = originSheet.getFirstRow() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
+			for (int r = originSheet.headerRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 				int matchingRow = -1;
 				originRow = originSourceSheet.getRow(r);
 				originCell = originRow.getCell(originKeyColIndex);
@@ -222,12 +221,16 @@ public class Blender
 			}
 		}
 		
-//		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
+		if (intersect) {
+			//destSheet.deleteRow(4);
+			deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
+		}
 		destination.write();
 	}
 	
 	/**
 	 * Copy a cell.
+	 * This method keeps the cell's original format.
 	 * 
 	 * @param origin - The origin cell to copy from
 	 * @param dest - The cell to copy the value into
@@ -243,67 +246,28 @@ public class Blender
 	}
 	
 	/**
-	 * Create a set of key values that contains an intersection of all given sets.
-	 * 
-	 * @param base - The base key values set (it contains the important row indexes)
-	 * @param integrators - All other key values sets
-	 * @return An intersection of all sets.
-	 */
-	@SuppressWarnings("unchecked")
-	private Set<KeyTuple> intersectKeySets(Set<KeyTuple> base, Set<KeyTuple> ... integrators) {
-		Set<KeyTuple> intersectionKeyVals = new HashSet<KeyTuple>(base);
-		
-		for (KeyTuple key1 : base) {
-			boolean match = false;
-			
-			for (Set<KeyTuple> integrator : integrators) {
-				for (KeyTuple key2 : integrator) {
-					if (key1.valueEquals(key2.value)) {
-						match = true;
-						break;
-					}
-				}
-			}
-			
-			//remove key from intersection
-			if (!match) intersectionKeyVals.remove(key1);
-		}
-		
-		return intersectionKeyVals;
-	}
-	
-	/**
 	 * Delete rows that contain key values that are not in the intersected keys set.
 	 * 
 	 * @param sheet - The destination sheet
 	 * @param keyColumnIndex - Index of the key column in the destination sheet
 	 * @param intersectedKeys - A set of the intersected key values between all sheets
 	 */
-	private void deleteUnnecessaryRows(Sheet sheet, int keyColumnIndex, Set<KeyTuple> intersectedKeys) {
+	private void deleteUnnecessaryRows(SheetModifier sheet, int keyColumnIndex, KeyTupleSet intersectedKeys) {
 		XSSFSheet sourceSheet = sheet.getSource();
 		
-		for (int i = sheet.getFirstRow() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
+		for (int i = sheet.headerRowIndex() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
 			XSSFRow row = sourceSheet.getRow(i);
-			XSSFCell cell = row.getCell(keyColumnIndex);
-			Object cellValue = Sheet.getGenericCellValue(cell);
 			
-			//delete row
-			if (!intersectedKeys.contains(cellValue)) {
-				sheet.deleteRow(i);
-				i--;
+			if (row != null) {
+				XSSFCell cell = row.getCell(keyColumnIndex);
+				Object cellValue = SheetModifier.getGenericCellValue(cell);
+				
+				//delete row
+				if (!intersectedKeys.containsValue(cellValue)) {
+					sheet.deleteRow(i);
+					i--;
+				}
 			}
 		}
-	}
-	
-	/**
-	 * @param set - A set of key values
-	 * @param value - The value to retrieve
-	 * @return A key tuple from the set that has the same value.
-	 */
-	private KeyTuple getSimilarValue(Set<KeyTuple> set, Object value) {
-		for (KeyTuple key : set)
-			if (key.valueEquals(value)) return key;
-
-		return null;
 	}
 }
