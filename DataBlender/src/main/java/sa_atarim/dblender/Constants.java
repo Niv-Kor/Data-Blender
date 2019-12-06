@@ -1,6 +1,7 @@
 package sa_atarim.dblender;
 import java.awt.Color;
 import javax.swing.ImageIcon;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import javaNK.util.files.ImageHandler;
 
 public class Constants
@@ -10,6 +11,10 @@ public class Constants
 	public static final Color WINDOW_COLOR = new Color(239, 239, 239);
 	public static final String[] ALLOWED_FILE_TYPES = { "xls", "xlsx" };
 	public static final String SAVED_FILE_TYPE = "xlsx";
+	
+	//format style
+	public static final HorizontalAlignment HEADERS_ALIGNMENT = HorizontalAlignment.CENTER;
+	public static final HorizontalAlignment DATA_ALIGNMENT = HorizontalAlignment.RIGHT;
 	
 	public static final class Icons
 	{

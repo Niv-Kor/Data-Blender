@@ -56,4 +56,15 @@ public class KeyTupleSet extends HashSet<KeyTuple>
 		
 		return intersectionKeyVals;
 	}
+	
+	/**
+	 * Shift all of the key tuple row indices by a specified amount of rows.
+	 * 
+	 * @param n - The amount of rows to shift the indices by (negative to shift upwards)
+	 */
+	public void shiftAllIndices(int n) {
+		for (KeyTuple key : this) {
+			key.rowIndex += n;
+		}
+	}
 }

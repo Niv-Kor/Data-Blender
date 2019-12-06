@@ -1,6 +1,11 @@
 package sa_atarim.dblender.sheets;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IgnoredErrorType;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -11,20 +16,22 @@ public class SheetModifier
 	
 	private DataFormatter formatter;
 	private XSSFSheet xssfSheet;
+	private XLSFile file;
 	
 	/**
 	 * @param xssf - The original XSSFSheet object to modify
 	 */
-	public SheetModifier(XSSFSheet xssf) {
+	public SheetModifier(XLSFile file, XSSFSheet xssf) {
 		this.xssfSheet = xssf;
 		this.formatter = new DataFormatter();
+		this.file = file;
 	}
 	
 	/**
 	 * @return An array of the columns names (the values of the headers).
 	 */
 	public String[] getColumnNames() {
-		XSSFRow firstRow = xssfSheet.getRow(headerRowIndex());
+		XSSFRow firstRow = xssfSheet.getRow(getHeaderRowIndex());
 		int columns = firstRow.getPhysicalNumberOfCells();
 		String[] columnNames = new String[columns];
 		
@@ -54,7 +61,7 @@ public class SheetModifier
 		int rowCount = xssfSheet.getPhysicalNumberOfRows();
 		String[] columnContent = new String[rowCount];
 		
-		for (int i = headerRowIndex() + 1; i < xssfSheet.getLastRowNum(); i++) {
+		for (int i = getHeaderRowIndex() + 1; i < xssfSheet.getLastRowNum(); i++) {
 			XSSFRow row = xssfSheet.getRow(i);
 			columnContent[i] = cellValueString(row, colIndex);
 		}
@@ -65,7 +72,7 @@ public class SheetModifier
 	/**
 	 * @return The index of the row that contains the headers.
 	 */
-	public int headerRowIndex() {
+	public int getHeaderRowIndex() {
 		int maxCells = 0, largestRow = 0;
 		
 		for (int i = 0; i < xssfSheet.getPhysicalNumberOfRows() && i < FIRST_ROW_CHECK_SAMPLE; i++) {
@@ -83,6 +90,17 @@ public class SheetModifier
 		}
 		
 		return largestRow;
+	}
+	
+	/**
+	 * @return The amount of columns in the sheet.
+	 */
+	public int getColumnsAmount() {
+		try {
+			Row headerRow = xssfSheet.getRow(getHeaderRowIndex());
+			return headerRow.getPhysicalNumberOfCells();
+		}
+		catch (Exception e) { return 0; }
 	}
 	
 	/**
@@ -108,21 +126,103 @@ public class SheetModifier
 	 */
 	public void deleteRow(int rowIndex) {
 		xssfSheet.removeRow(xssfSheet.getRow(rowIndex));
-		xssfSheet.shiftRows(rowIndex + 1, xssfSheet.getLastRowNum(), -1);
 		
-	    for (int i = xssfSheet.getFirstRowNum(); i < xssfSheet.getLastRowNum() + 1; i++) {
+		if (rowIndex < xssfSheet.getPhysicalNumberOfRows())
+			shiftRows(rowIndex + 1, xssfSheet.getPhysicalNumberOfRows(), -1);
+	}
+	
+	/**
+	 * Shift a block of rows downwards or upwards.
+	 * This method overrides a bug in the XSSFSheet's 'shiftRows' method.
+	 * 
+	 * @param startRow - The index of the first row in the block
+	 * @param n - Amount of rows to shift downwards (negative to shift upwards)
+	 */
+	public void shiftRows(int startRow, int n) {
+		shiftRows(startRow, xssfSheet.getPhysicalNumberOfRows(), n);
+	}
+	
+	/**
+	 * Shift a block of rows downwards or upwards.
+	 * This method overrides a bug in the XSSFSheet's 'shiftRows' method.
+	 * 
+	 * @param startRow - The index of the first row in the block
+	 * @param endRow - The index of the last row in the block
+	 * @param n - Amount of rows to shift downwards (negative to shift upwards)
+	 */
+	public void shiftRows(int startRow, int endRow, int n) {
+		xssfSheet.shiftRows(startRow, endRow, n);
+		
+		for (int i = xssfSheet.getFirstRowNum(); i < xssfSheet.getLastRowNum() + 1; i++) {
 	    	XSSFRow row = xssfSheet.getRow(i); 
 
 	    	if (row != null) {
 	    		long rRef = row.getCTRow().getR();
 
-	    		for (int c = row.getFirstCellNum(); c < row.getLastCellNum(); c++) {
+	    		for (int c = 0; c < getColumnsAmount(); c++) {
 	    			XSSFCell cell = row.getCell(c);
+	    			
+	    			if (cell == null) continue;
+	    			
 	    			String cRef = cell.getCTCell().getR();
 	    			cell.getCTCell().setR(cRef.replaceAll("[0-9]", "") + rRef);
 	    		}
 	    	}
 	    }
+	}
+	
+	/**
+	 * Take a row of the sheet and insert it right after another row.
+	 * The original row is deleted and created again after the desired index.
+	 * 
+	 * @param rowIndex - The index of the row to shift
+	 * @param afterRow - Insert the shifted row after this row's index
+	 */
+	public void insertRowAfter(int rowIndex, int afterRow) {
+		//copy the row
+		Row originRow = xssfSheet.getRow(rowIndex);
+		String[] originValues = new String[xssfSheet.getRow(getHeaderRowIndex()).getPhysicalNumberOfCells()];
+		
+		for (int i = 0; i < originValues.length; i++)
+			originValues[i] = cellValueString(originRow, i);
+		
+		//delete the row
+		deleteRow(rowIndex);
+		if (afterRow > rowIndex) afterRow--;
+		
+		insertRowAfter(originValues, afterRow);
+	}
+	
+	/**
+	 * @see #insertRowAfter(int, int)
+	 * @param rowBuffer - An array that contains the entire row to insert
+	 * @param afterRow - Insert the row after this row's index
+	 */
+	public void insertRowAfter(String[] rowBuffer, int afterRow) {
+		//shift everything down by 1
+		shiftRows(afterRow + 1, 1);
+		
+		//paste the row
+		Row destRow = xssfSheet.createRow(afterRow + 1);
+		
+		for (int i = 0; i < rowBuffer.length; i++) {
+			Cell destCell = destRow.createCell(i);
+			destCell.setCellValue(rowBuffer[i]);
+		}
+	}
+	
+	/**
+	 * Add a statement that makes the file ignore cell format warnings.
+	 * Writing a String value to a numeric cell will not cause problems.
+	 */
+	public void ignoreCellFormatWarnings() {
+		int rowsAmount = xssfSheet.getPhysicalNumberOfRows();
+		
+		if (rowsAmount >= 1) {
+			int colAmount = xssfSheet.getRow(getHeaderRowIndex()).getPhysicalNumberOfCells();
+			CellRangeAddress cellRange = new CellRangeAddress(0, rowsAmount, 0, colAmount);
+			xssfSheet.addIgnoredErrors(cellRange, IgnoredErrorType.NUMBER_STORED_AS_TEXT);
+		}
 	}
 	
 	/**
@@ -133,8 +233,8 @@ public class SheetModifier
 	 * @return The value of the cell as type Object.
 	 */
 	public Object getGenericCellValue(int rowIndex, int cellIndex) {
-		XSSFRow row = xssfSheet.getRow(rowIndex);
-		XSSFCell cell = row.getCell(cellIndex);
+		Row row = xssfSheet.getRow(rowIndex);
+		Cell cell = row.getCell(cellIndex);
 		return getGenericCellValue(cell);
 	}
 	
@@ -144,7 +244,7 @@ public class SheetModifier
 	 * @param cell - The cell object
 	 * @return The value of the cell as type Object.
 	 */
-	public static Object getGenericCellValue(XSSFCell cell) {
+	public static Object getGenericCellValue(Cell cell) {
 		Object value;
 		
 		switch (cell.getCellType()) {
@@ -154,6 +254,33 @@ public class SheetModifier
 		}
 		
 		return value;
+	}
+	
+	/**
+	 * Horizontally align all cells in the sheet.
+	 * 
+	 * @param headers - Horizontal alignment for the headers row
+	 * @param data - Horizontal alignment for data
+	 */
+	public void alignCells(HorizontalAlignment headers, HorizontalAlignment data) {
+		int colCount = getColumnsAmount();
+		int headerIndex = getHeaderRowIndex();
+		CellStyle headerStyle = file.getWorkbook().createCellStyle();
+		CellStyle dataStyle = file.getWorkbook().createCellStyle();
+		headerStyle.setAlignment(headers);
+		dataStyle.setAlignment(data);
+		
+		for (int r = 0; r < xssfSheet.getPhysicalNumberOfRows(); r++) {
+			CellStyle alignment = (r == headerIndex) ? headerStyle : dataStyle;
+			Row row = xssfSheet.getRow(r);
+			
+			if (row != null) {
+				for (int c = 0; c < colCount; c++) {
+					Cell cell = row.getCell(c);
+					if (cell != null) cell.setCellStyle(alignment);
+				}
+			}
+		}
 	}
 	
 	/**

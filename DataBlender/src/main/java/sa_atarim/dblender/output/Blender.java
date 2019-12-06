@@ -1,14 +1,16 @@
 package sa_atarim.dblender.output;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.Stack;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -123,7 +125,7 @@ public class Blender
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
 		List<String> destColumns = Arrays.asList(destSheet.getColumnNames());
-		int destNewColIndex = destSourceSheet.getRow(destSheet.headerRowIndex()).getPhysicalNumberOfCells();
+		int destNewColIndex = destSourceSheet.getRow(destSheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
 		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
 		int originKeyColIndex = originSheet.getColumnIndex(keyColumn);
 		KeyTupleSet finalKeyVals;
@@ -131,7 +133,7 @@ public class Blender
 		//retrieve the origin key values as a set
 		KeyTupleSet originKeyVals = new KeyTupleSet();
 		
-		for (int r = originSheet.headerRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
+		for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
 			originKeyVals.add(KeyTuple.create(r, keyCell));
 		}
@@ -139,7 +141,7 @@ public class Blender
 		//retrieve the destination key values as a set
 		KeyTupleSet destKeyVals = new KeyTupleSet();
 		
-		for (int r = destSheet.headerRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
+		for (int r = destSheet.getHeaderRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
 			destKeyVals.add(KeyTuple.create(r, keyCell));
 		}
@@ -187,26 +189,28 @@ public class Blender
 			
 			//get the next free column
 			int colIndex = destNewColIndex++;
-			
+
 			//insert the column name to the destination
-			XSSFRow originRow = originSourceSheet.getRow(originSheet.headerRowIndex());
+			XSSFRow originRow = originSourceSheet.getRow(originSheet.getHeaderRowIndex());
 			XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
-			XSSFRow destRow = destSourceSheet.getRow(destSheet.headerRowIndex());
+			XSSFRow destRow = destSourceSheet.getRow(destSheet.getHeaderRowIndex());
 			XSSFCell destCell = destRow.createCell(colIndex);
 			copyCell(originCell, destCell);
 			
 			//clone the original key values set for each column
-			Set<KeyTuple> keyValsClone = new HashSet<KeyTuple>(finalKeyVals);
+			KeyTupleSet keyValsClone = new KeyTupleSet(finalKeyVals);
 			
 			//iterate over every row of the origin and match it with the destination
-			for (int r = originSheet.headerRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
+			for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 				int matchingRow = -1;
 				originRow = originSourceSheet.getRow(r);
 				originCell = originRow.getCell(originKeyColIndex);
 				
 				//find the matching row in the destination
+				String originKeyValue = originCell.getStringCellValue();
+				
 				for (KeyTuple key : keyValsClone) {
-					if (key.valueEquals(originCell.getStringCellValue())) {
+					if (key.valueEquals(originKeyValue)) {
 						matchingRow = key.rowIndex;
 						keyValsClone.remove(key);
 						
@@ -221,11 +225,67 @@ public class Blender
 			}
 		}
 		
-		if (intersect) {
-			//destSheet.deleteRow(4);
-			deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
-		}
+		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
+		
+		sortRowsByKey(destination, keyColumn);
+		
 		destination.write();
+	}
+	
+	private void sortRowsByKey(XLSFile file, String keyColumn) {
+		SheetModifier sheet = file.getSheet();
+		XSSFSheet source = sheet.getSource();
+		Map<String, List<String[]>> duplicatedRows = new HashMap<String, List<String[]>>();
+		int columnsAmount = source.getRow(sheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
+		
+		//find all duplicated rows in the sheet
+		for (int r = 0, deletedRows = 0; r < source.getPhysicalNumberOfRows() - deletedRows; r++) {
+			Row row = source.getRow(r);
+			String keyValue = sheet.cellValueString(row, 0);
+			
+			//create new entry for the first instance of the key
+			if (!duplicatedRows.containsKey(keyValue))
+				duplicatedRows.put(keyValue, new ArrayList<String[]>());
+			
+			//seen at least two instances of the same key
+			else {
+				List<String[]> rowsList = duplicatedRows.get(keyValue);
+				String[] rowBuffer = new String[columnsAmount];
+				rowsList.add(rowBuffer);
+				
+				//save the entire row in a buffer
+				for (int i = 0; i < rowBuffer.length; i++)
+					rowBuffer[i] = sheet.cellValueString(row, i);
+				
+				//delete the saved row
+				sheet.deleteRow(r);
+				deletedRows++;
+				r--;
+			}
+		}
+		
+		//remove empty entries from the map
+		Queue<String> keysToRemove = new LinkedList<String>();
+		
+		for (String key : duplicatedRows.keySet())
+			if (duplicatedRows.get(key).isEmpty()) keysToRemove.add(key);
+		
+		while (!keysToRemove.isEmpty())
+			duplicatedRows.remove(keysToRemove.poll());
+		
+		//sort duplicated rows under the origin of each
+		for (int r = 0; r < source.getPhysicalNumberOfRows(); r++) {
+			Row row = source.getRow(r);
+			String keyValue = sheet.cellValueString(row, 0);
+			
+			//insert the row from the buffer
+			if (duplicatedRows.containsKey(keyValue)) {
+				for (String[] rowBuffer : duplicatedRows.get(keyValue))
+					sheet.insertRowAfter(rowBuffer, r);
+				
+				duplicatedRows.remove(keyValue);
+			}
+		}
 	}
 	
 	/**
@@ -255,7 +315,7 @@ public class Blender
 	private void deleteUnnecessaryRows(SheetModifier sheet, int keyColumnIndex, KeyTupleSet intersectedKeys) {
 		XSSFSheet sourceSheet = sheet.getSource();
 		
-		for (int i = sheet.headerRowIndex() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
+		for (int i = sheet.getHeaderRowIndex() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
 			XSSFRow row = sourceSheet.getRow(i);
 			
 			if (row != null) {

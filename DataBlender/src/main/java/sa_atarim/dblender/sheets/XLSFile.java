@@ -7,6 +7,7 @@ import java.io.InputStream;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import javaNK.util.IO.DirectortTrimmer;
 import javaNK.util.files.FileLoader;
+import sa_atarim.dblender.Constants;
 
 public class XLSFile extends FileLoader
 {
@@ -24,7 +25,7 @@ public class XLSFile extends FileLoader
 		this.fileName = DirectortTrimmer.extractFileName(path);
 		this.inputStream = new FileInputStream(file);
 		this.workbook = new XSSFWorkbook(inputStream);
-		this.sheet = new SheetModifier(workbook.getSheetAt(0));
+		this.sheet = new SheetModifier(this, workbook.getSheetAt(0));
 	}
 	
 	/**
@@ -40,6 +41,10 @@ public class XLSFile extends FileLoader
 		
 		//write to file
 		try {
+			//modify sheet
+			sheet.ignoreCellFormatWarnings();
+			sheet.alignCells(Constants.HEADERS_ALIGNMENT, Constants.DATA_ALIGNMENT);
+			
 			FileOutputStream outputStream = new FileOutputStream(file);
 			workbook.write(outputStream);
 			outputStream.close();
@@ -54,7 +59,9 @@ public class XLSFile extends FileLoader
 	 * Close the file.
 	 */
 	public void close() {
-		try { workbook.close();	}
+		try {
+			workbook.close();
+		}
 		catch (IOException e) {
 			System.err.println("Could not close the file '" + fileName + "'.");
 			e.printStackTrace();
