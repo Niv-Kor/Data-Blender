@@ -20,7 +20,7 @@ import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
 import sa_atarim.dblender.Constants;
 import sa_atarim.dblender.sheets.SheetModifier;
 import sa_atarim.dblender.sheets.XLSFile;
-import sa_atarim.dblender.sheets.key_column.KeyTuple;
+import sa_atarim.dblender.sheets.key_column.ConstantCell;
 import sa_atarim.dblender.sheets.key_column.KeyTupleSet;
 
 public class Blender
@@ -34,14 +34,17 @@ public class Blender
 	 * @throws IOException When the new file cannot be created due to bad path.
 	 */
 	public void blend(OutputRequest request) throws IOException {
-		List<FileSpecification> files = request.getFiles();
-		if (files.isEmpty()) return;
+		if (request == null || !request.isValid()) return;
 		
+		List<FileSpecification> files = request.getFiles();
 		XLSFile blendedFile = createEmptyFile(request);
 		duplicate(files.get(0), blendedFile);
 		
 		for (int i = 1; i < files.size(); i++)
 			integrate(files.get(i), blendedFile, request.getKeyColumn(), request.usesIntersection());
+		
+		groupSimilarKeys(blendedFile, request.getKeyColumn());
+		blendedFile.write();
 		
 		//close all files
 		for (FileSpecification specification : files) specification.getFile().close();
@@ -105,8 +108,6 @@ public class Blender
 			
 			colIndex++;
 		}
-		
-		destination.write();
 	}
 	
 	/**
@@ -135,7 +136,7 @@ public class Blender
 		
 		for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
-			originKeyVals.add(KeyTuple.create(r, keyCell));
+			originKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
 		//retrieve the destination key values as a set
@@ -143,7 +144,7 @@ public class Blender
 		
 		for (int r = destSheet.getHeaderRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
-			destKeyVals.add(KeyTuple.create(r, keyCell));
+			destKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
 		if (intersect) {
@@ -153,11 +154,11 @@ public class Blender
 		else {
 			//create a set that's exclusive for the origin key values
 			KeyTupleSet exclusiveOriginKeyVals = new KeyTupleSet(originKeyVals);
-			Queue<KeyTuple> keysToRemove = new LinkedList<KeyTuple>();
-			Stack<KeyTuple> keysStack = new Stack<KeyTuple>();
+			Queue<ConstantCell> keysToRemove = new LinkedList<ConstantCell>();
+			Stack<ConstantCell> keysStack = new Stack<ConstantCell>();
 			
-			for (KeyTuple key : destKeyVals) {
-				KeyTuple similarValue = exclusiveOriginKeyVals.getSimilarValue(key.value);
+			for (ConstantCell key : destKeyVals) {
+				ConstantCell similarValue = exclusiveOriginKeyVals.getSimilarValue(key.value);
 				if (similarValue != null) keysToRemove.add(similarValue);
 			}
 			
@@ -174,8 +175,8 @@ public class Blender
 				destCell.setCellValue((String) keyValue);
 				
 				//update new row indexes on the exclusive origin key values
-				KeyTuple exclusiveKeyTuple = exclusiveOriginKeyVals.getSimilarValue(keyValue);
-				exclusiveKeyTuple.rowIndex = r;
+				ConstantCell exclusiveKeyTuple = exclusiveOriginKeyVals.getSimilarValue(keyValue);
+				exclusiveKeyTuple.index = r;
 			}
 			
 			//use the union of both files' key values
@@ -209,9 +210,9 @@ public class Blender
 				//find the matching row in the destination
 				String originKeyValue = originCell.getStringCellValue();
 				
-				for (KeyTuple key : keyValsClone) {
-					if (key.valueEquals(originKeyValue)) {
-						matchingRow = key.rowIndex;
+				for (ConstantCell key : keyValsClone) {
+					if (key.value.equals(originKeyValue)) {
+						matchingRow = key.index;
 						keyValsClone.remove(key);
 						
 						//insert the data to the destination
@@ -226,13 +227,9 @@ public class Blender
 		}
 		
 		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
-		
-		sortRowsByKey(destination, keyColumn);
-		
-		destination.write();
 	}
 	
-	private void sortRowsByKey(XLSFile file, String keyColumn) {
+	private void groupSimilarKeys(XLSFile file, String keyColumn) {
 		SheetModifier sheet = file.getSheet();
 		XSSFSheet source = sheet.getSource();
 		Map<String, List<String[]>> duplicatedRows = new HashMap<String, List<String[]>>();

@@ -3,7 +3,7 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import sa_atarim.dblender.Constants;
 
-public class ListEntry
+public class ListEntry implements java.lang.Comparable<ListEntry>
 {
 	public static enum EntryIcon {
 		GREEN(Constants.Icons.GREEN_SQUARE),
@@ -49,4 +49,13 @@ public class ListEntry
 	
 	@Override
 	public String toString() { return getValue(); }
+
+	@Override
+	public int compareTo(ListEntry o) {
+		boolean entry1Cand = isCandidate();
+		boolean entry2Cand = o.isCandidate();
+		
+		if (entry1Cand != entry2Cand) return entry1Cand ? -1 : 1;
+		else return value.compareTo(o.value);
+	}
 }

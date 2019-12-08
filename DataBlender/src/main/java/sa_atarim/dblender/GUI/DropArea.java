@@ -27,10 +27,8 @@ import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
 import javaNK.util.IO.DirectortTrimmer;
-import javaNK.util.files.FontHandler;
-import javaNK.util.files.FontHandler.FontStyle;
 import sa_atarim.dblender.Constants;
-import sa_atarim.dblender.error.ErrorPopup;
+import sa_atarim.dblender.error.PopupError;
 
 public class DropArea extends JTextPane
 {
@@ -58,13 +56,13 @@ public class DropArea extends JTextPane
 				List<File> droppedFile = (List<File>) eventTransferable.getTransferData(javaFilesFlavour);
 				
 				//validate input
-				if (droppedFile.size() > 1) ErrorPopup.MULTIPLE_FILES.pop();
+				if (droppedFile.size() > 1) PopupError.MULTIPLE_FILES.pop();
 				else {
 					File file = droppedFile.get(0);
 					String path = file.getPath();
 					
 					if (!isTypeAllowed(DirectortTrimmer.extractFileExtension(path)))
-						ErrorPopup.TYPE_NOT_SUPPORTED.pop();
+						PopupError.TYPE_NOT_SUPPORTED.pop();
 					else {
 						filePath = path;
 						dropArea.setFile(path);
@@ -152,15 +150,14 @@ public class DropArea extends JTextPane
 	}   
 	
 	private static final long serialVersionUID = 1L;
-	private static final float COMPRESSED_FONT_SCALE = .8f;
-	private static final Font FONT = FontHandler.load("Raleway", FontStyle.BOLD, 15);
+	private static final float COMPRESSED_FONT = 10f;
+	private static final Font FONT = Constants.Fonts.MAIN;
 	private static final Color DEFAULT_TEXT_COLOR = new Color(180, 180, 180);
 	private static final Color FILE_NAME_COLOR = new Color(80, 137, 63);
 	private static final Color EMPTY_COLOR = new Color(0, 195, 255);
 	private static final Color BRIGHT_EMPTY_COLOR = new Color(171, 235, 255);
 	private static final Color OCCUPIED_COLOR = new Color(53, 221, 71);
 	private static final Color BRIGHT_OCCUPIED_COLOR = new Color(186, 255, 193);
-	private static final Color BACKGROUND = Color.WHITE;
 	
 	private CustomizedDropTarget dropTarget;
 	private String defaultText, propertyChangeCode;
@@ -184,7 +181,7 @@ public class DropArea extends JTextPane
 		setDropTarget(dropTarget);
 		setText(defaultText);
 		setForeground(DEFAULT_TEXT_COLOR);
-		setBackground(BACKGROUND);
+		setBackground(Constants.BOX_BACKGROUND);
 		setFont(FONT);
 		
 		//center text
@@ -238,14 +235,17 @@ public class DropArea extends JTextPane
 	}
 	
 	private void calcMaxCharsPerLine() {
-		if (getText() == null || getText().equals("")) return;
+		String text = getText();
+		if (text == null || text.equals("")) return;
 		
-		int fontSize = FONT.getSize();
+		Font font = Constants.Fonts.setByLanguage(text).deriveFont(15f);
+		
+		int fontSize = font.getSize();
 		int width = getPreferredSize().width;
 		int textLength = getText().length();
 		int maxCharsPerLine = (int) (width / fontSize * 1.85f);
-		float compressedScale = (textLength > maxCharsPerLine) ? COMPRESSED_FONT_SCALE : 1;
-		setFont(FONT.deriveFont((float) (FONT.getSize() * compressedScale)));
+		float compressedScale = (textLength > maxCharsPerLine) ? COMPRESSED_FONT : font.getSize();
+		setFont(font.deriveFont((float) compressedScale));
 	}
 	
 	@Override

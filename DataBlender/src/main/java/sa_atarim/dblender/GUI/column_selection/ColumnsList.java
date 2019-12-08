@@ -1,6 +1,9 @@
 package sa_atarim.dblender.GUI.column_selection;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.FocusListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
@@ -8,6 +11,10 @@ import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
+import javax.swing.border.Border;
+import javax.swing.border.EtchedBorder;
+import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.GUI.column_selection.ListEntry.EntryIcon;
 
 public class ColumnsList extends JScrollPane
 {
@@ -38,6 +45,7 @@ public class ColumnsList extends JScrollPane
 	}
 	
 	private static final long serialVersionUID = 3103333593176935098L;
+	private static final Border BORDER = new EtchedBorder(EtchedBorder.LOWERED);
 	
 	private DefaultListModel<ListEntry> listModel;
 	private JList<ListEntry> list;
@@ -49,10 +57,27 @@ public class ColumnsList extends JScrollPane
 		list.setModel(listModel);
 	    list.setCellRenderer(new ListEntryCellRenderer());
 	    list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+	    list.setFont(Constants.Fonts.COLUMNS);
 	    
+	    setBorder(BORDER);
+	    setBackground(Constants.BOX_BACKGROUND);
 	    setViewportView(list);
 	    setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
 	}
+	
+	public void sort() {
+		ListEntry[] arr = new ListEntry[listModel.getSize()];
+		
+		for (int i = 0; i < listModel.getSize(); i++)
+			arr[i] = listModel.get(i);
+			
+		Arrays.sort(arr);
+		removeAllEntries();
+		
+		for (int i = 0; i < arr.length; i++)
+			addEntry(arr[i]);
+	}
+	
 	
 	public void addEntry(ListEntry entry) {
 		listModel.addElement(entry);
@@ -70,8 +95,23 @@ public class ColumnsList extends JScrollPane
 		list.setSelectionInterval(0, listModel.getSize() - 1);
 	}
 	
-	public boolean hasEntry(ListEntry entry) {
-		return listModel.contains(entry);
+	public void clearSelection() {
+		list.clearSelection();
+	}
+	
+	public boolean containsEntry(ListEntry entry) {
+		return getEntry(entry.getValue()) != null;
+	}
+	
+	public boolean containsEntry(EntryIcon ... icons) {
+		for (int i = 0; i < listModel.getSize(); i++) {
+			EntryIcon entryIcon = listModel.get(i).getEntryIcon();
+			
+			for (int j = 0; j < icons.length; j++)
+				if (entryIcon == icons[j]) return true;
+		}
+		
+		return false;
 	}
 	
 	public ListEntry getEntry(String value) {
@@ -81,8 +121,16 @@ public class ColumnsList extends JScrollPane
 		return null;
 	}
 	
+	public boolean isEmpty() {
+		return listModel.getSize() == 0;
+	}
+	
 	public List<ListEntry> getSelected() {
 		return list.getSelectedValuesList();
+	}
+	
+	public int getSelectedEntriesAmount() {
+		return list.getSelectedIndices().length;
 	}
 	
 	public List<ListEntry> getAll() {
@@ -92,5 +140,16 @@ public class ColumnsList extends JScrollPane
 			entries.add(listModel.get(i));
 		
 		return entries;
+	}
+	
+	@Override
+	public void addFocusListener(FocusListener listener) {
+		list.addFocusListener(listener);
+	}
+	
+	@Override
+	public void setBackground(Color color) {
+		super.setBackground(color);
+		if (list != null) list.setBackground(color);
 	}
 }

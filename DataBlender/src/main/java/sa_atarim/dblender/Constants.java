@@ -1,8 +1,12 @@
 package sa_atarim.dblender;
 import java.awt.Color;
+import java.awt.Font;
 import javax.swing.ImageIcon;
 import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import javaNK.util.files.FontHandler;
+import javaNK.util.files.FontHandler.FontStyle;
 import javaNK.util.files.ImageHandler;
+import javaNK.util.math.Range;
 
 public class Constants
 {
@@ -11,31 +15,62 @@ public class Constants
 	public static final Color WINDOW_COLOR = new Color(239, 239, 239);
 	public static final String[] ALLOWED_FILE_TYPES = { "xls", "xlsx" };
 	public static final String SAVED_FILE_TYPE = "xlsx";
+	public static final Color BOX_BACKGROUND = new Color(249, 249, 249);
 	
 	//format style
 	public static final HorizontalAlignment HEADERS_ALIGNMENT = HorizontalAlignment.CENTER;
 	public static final HorizontalAlignment DATA_ALIGNMENT = HorizontalAlignment.RIGHT;
 	
+	public static final class Fonts
+	{
+		private static enum Language {
+			ENGLISH, HEBREW, UNCERTAIN;
+		}
+		
+		public static final Font GENERIC = FontHandler.load("Arial", FontStyle.PLAIN, 15);
+		public static final Font MAIN = FontHandler.load("Raleway", FontStyle.PLAIN, 18);
+		public static final Font COLUMNS = FontHandler.load("VarelaRound", FontStyle.PLAIN, 12);
+		
+		private static final Range<Integer> HEBREW_ASCII = new Range<Integer>(1488, 1514);
+		private static final Range<Integer> LOWER_ENGLISH_ASCII = new Range<Integer>(97, 122);
+		private static final Range<Integer> UPPER_ENGLISH_ASCII = new Range<Integer>(65, 90);
+		
+		public static Font setByLanguage(String str) {
+			Language lang = getLanguage(str);
+			
+			switch (lang) {
+				case ENGLISH: return MAIN;
+				case HEBREW: return COLUMNS;
+				default: return GENERIC;
+			}
+		}
+		
+		private static Language getLanguage(String str) {
+			boolean containsEnglish = false;;
+			
+			for (int i = 0; i < str.length(); i++) {
+				int character = (int) str.charAt(i);
+				
+				if (HEBREW_ASCII.intersects(character)) return Language.HEBREW;
+				else if (!containsEnglish) {
+					if (LOWER_ENGLISH_ASCII.intersects(character) || UPPER_ENGLISH_ASCII.intersects(character))
+					containsEnglish = true;
+				}
+			}
+			
+			return containsEnglish ? Language.ENGLISH : Language.UNCERTAIN;
+		}
+	}
+	
 	public static final class Icons
 	{
 		private static final String FOLDER = "icons/";
-		
-		//main window
+		public static final ImageIcon COMPANY_LOGO = ImageHandler.loadIcon(FOLDER + "company_logo.png");
 		public static final ImageIcon CLEAR_X = ImageHandler.loadIcon(FOLDER + "clear.png");
 		public static final ImageIcon HOVER_CLEAR_X = ImageHandler.loadIcon(FOLDER + "hover_clear.png");
-		
-		//blender
 		public static final ImageIcon BLENDER = ImageHandler.loadIcon(FOLDER + "blender.png");
 		public static final ImageIcon HOVER_BLENDER = ImageHandler.loadIcon(FOLDER + "hover_blender.png");
-		public static final ImageIcon ERROR = ImageHandler.loadIcon(FOLDER + "broken_icon_60x78.png");
-		
-		//column settings icon
-		public static final ImageIcon EMPTY_COLUMN_SETTINGS = ImageHandler.loadIcon(FOLDER + "empty_column_settings.png");
-		public static final ImageIcon HOVER_EMPTY_COLUMN_SETTINGS = ImageHandler.loadIcon(FOLDER + "hover_empty_column_settings.png");
-		public static final ImageIcon FILLED_COLUMN_SETTINGS = ImageHandler.loadIcon(FOLDER + "filled_column_settings.png");
-		public static final ImageIcon HOVER_FILLED_COLUMN_SETTINGS = ImageHandler.loadIcon(FOLDER + "hover_filled_column_settings.png");
-		
-		//column settings window
+		public static final ImageIcon ERROR = ImageHandler.loadIcon(FOLDER + "error.png");
 		public static final ImageIcon SHIFT_FWD = ImageHandler.loadIcon(FOLDER + "shift_forward.png");
 		public static final ImageIcon SHIFT_BCK = ImageHandler.loadIcon(FOLDER + "shift_back.png");
 		public static final ImageIcon HOVER_SHIFT_FWD = ImageHandler.loadIcon(FOLDER + "hover_shift_forward.png");
@@ -46,5 +81,7 @@ public class Constants
 		public static final ImageIcon GREEN_CANDIDATE_SQUARE = ImageHandler.loadIcon(FOLDER + "green_candidate_square.png");
 		public static final ImageIcon BLUE_CANDIDATE_SQUARE = ImageHandler.loadIcon(FOLDER + "blue_candidate_square.png");
 		public static final ImageIcon GRAY_CANDIDATE_SQUARE = ImageHandler.loadIcon(FOLDER + "gray_candidate_square.png");
+		public static final ImageIcon UNCHECKED_BOX = ImageHandler.loadIcon(FOLDER + "unchecked_box.png");
+		public static final ImageIcon CHECKED_BOX = ImageHandler.loadIcon(FOLDER + "checked_box.png");
 	}
 }

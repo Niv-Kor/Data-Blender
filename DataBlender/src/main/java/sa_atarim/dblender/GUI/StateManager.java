@@ -3,20 +3,13 @@ import java.util.ArrayList;
 import java.util.List;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
-import sa_atarim.dblender.GUI.states.ColumnSelectionState;
-import sa_atarim.dblender.GUI.states.InputState;
+import sa_atarim.dblender.GUI.states.MainState;
 
 public class StateManager
 {
-	/**
-	 * Enum of specific states.
-	 * Use this enum to tell Launcher which state to set and where.
-	 * 
-	 * @author Niv Kor
-	 */
-	public static enum Substate {
-		INPUT(InputState.class),
-		COLUMN_SELECTION(ColumnSelectionState.class);
+	public static enum Substate
+	{
+		MAIN(MainState.class);
 		
 		private Class<? extends State> stateClass;
 		

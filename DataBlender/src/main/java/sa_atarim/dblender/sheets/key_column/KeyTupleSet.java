@@ -1,7 +1,7 @@
 package sa_atarim.dblender.sheets.key_column;
 import java.util.HashSet;
 
-public class KeyTupleSet extends HashSet<KeyTuple>
+public class KeyTupleSet extends HashSet<ConstantCell>
 {
 	private static final long serialVersionUID = -2883857792760452910L;
 	
@@ -14,18 +14,15 @@ public class KeyTupleSet extends HashSet<KeyTuple>
 	 * @param value - The value to retrieve
 	 * @return A key tuple from the set that has the same value.
 	 */
-	public KeyTuple getSimilarValue(Object value) {
-		for (KeyTuple key : this)
-			if (key.valueEquals(value)) return key;
+	public ConstantCell getSimilarValue(Object value) {
+		for (ConstantCell key : this)
+			if (key.value.equals((String) value)) return key;
 
 		return null;
 	}
 	
 	public boolean containsValue(Object value) {
-		for (KeyTuple key : this)
-			if (key.valueEquals(value)) return true;
-
-		return false;
+		return getSimilarValue(value) != null;
 	}
 	
 	/**
@@ -38,12 +35,12 @@ public class KeyTupleSet extends HashSet<KeyTuple>
 	public KeyTupleSet intersect(KeyTupleSet ... integrators) {
 		KeyTupleSet intersectionKeyVals = new KeyTupleSet(this);
 		
-		for (KeyTuple key1 : this) {
+		for (ConstantCell key1 : this) {
 			boolean match = false;
 			
 			for (KeyTupleSet integrator : integrators) {
-				for (KeyTuple key2 : integrator) {
-					if (key1.valueEquals(key2.value)) {
+				for (ConstantCell key2 : integrator) {
+					if (key1.equals(key2)) {
 						match = true;
 						break;
 					}
@@ -63,8 +60,6 @@ public class KeyTupleSet extends HashSet<KeyTuple>
 	 * @param n - The amount of rows to shift the indices by (negative to shift upwards)
 	 */
 	public void shiftAllIndices(int n) {
-		for (KeyTuple key : this) {
-			key.rowIndex += n;
-		}
+		for (ConstantCell key : this) key.index += n;
 	}
 }

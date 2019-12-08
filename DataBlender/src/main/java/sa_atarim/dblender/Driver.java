@@ -7,6 +7,6 @@ public class Driver
 {
 	public static void main(String[] args) {
 		MainWindow mainWindow = new MainWindow();
-		StateManager.setState(mainWindow, Substate.INPUT);
+		StateManager.setState(mainWindow, Substate.MAIN);
 	}
 }
