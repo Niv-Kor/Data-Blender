@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI.states;
+package sa_atarim.dblender.GUI;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -22,11 +22,9 @@ import javax.swing.JLabel;
 import javaNK.util.GUI.swing.components.InteractiveIcon;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
-import javaNK.util.IO.DirectortTrimmer;
+import javaNK.util.IO.DirectoryTrimmer;
 import javaNK.util.math.DimensionalHandler;
 import sa_atarim.dblender.Constants;
-import sa_atarim.dblender.GUI.Circuits;
-import sa_atarim.dblender.GUI.DropArea;
 import sa_atarim.dblender.GUI.column_selection.ColumnsList;
 import sa_atarim.dblender.GUI.column_selection.ListEntry;
 import sa_atarim.dblender.GUI.column_selection.ListEntry.EntryIcon;
@@ -366,8 +364,8 @@ public class MainState extends State implements PropertyChangeListener
 			
 			else {
 				String filePath = FileProcessor.saveFileToDirectory();
-				String directory = DirectortTrimmer.extractDirectory(filePath);
-				String fileName = DirectortTrimmer.extractFileName(filePath);
+				String directory = DirectoryTrimmer.extractDirectory(filePath);
+				String fileName = DirectoryTrimmer.extractFileName(filePath);
 				
 				if (!directory.equals("") && !fileName.equals(""))
 					outputRequest.setFilePath(filePath);
@@ -438,7 +436,7 @@ public class MainState extends State implements PropertyChangeListener
 		}
 		
 		for (String col : columnNames)
-			list.addEntry(new ListEntry(col, fileIndex.icon));
+			list.addEntry(new ListEntry(fileIndex.icon, col));
 		
 		//find the key column candidates and highlight them
 		suggestCandidatesEntries();
@@ -668,19 +666,23 @@ public class MainState extends State implements PropertyChangeListener
 	}
 	
 	/**
-	 * Refresh the lists' view.
+	 * Refresh all lists.
 	 */
 	private void refreshLists() {
-		file1List.sort();
-		file1List.revalidate();
-		file1List.repaint();
-		file1List.clearSelection();
-		file2List.sort();
-		file2List.revalidate();
-		file2List.repaint();
-		file2List.clearSelection();
-		combinedList.revalidate();
-		combinedList.repaint();
+		refreshList(file1List);
+		refreshList(file2List);
+		refreshList(combinedList);
+	}
+	
+	/**
+	 * Refresh one list's view.
+	 * 
+	 * @param list - The list to refresh
+	 */
+	private void refreshList(ColumnsList list) {
+		list.revalidate();
+		list.repaint();
+		list.sort();
 	}
 	
 	@Override

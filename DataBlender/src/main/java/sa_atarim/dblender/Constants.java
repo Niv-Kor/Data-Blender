@@ -35,6 +35,12 @@ public class Constants
 		private static final Range<Integer> LOWER_ENGLISH_ASCII = new Range<Integer>(97, 122);
 		private static final Range<Integer> UPPER_ENGLISH_ASCII = new Range<Integer>(65, 90);
 		
+		/**
+		 * Find the correct font for a string according to its language.
+		 * 
+		 * @param str - A string to find the correct font to
+		 * @return A font that best cooperates with the string.
+		 */
 		public static Font setByLanguage(String str) {
 			Language lang = getLanguage(str);
 			
@@ -45,6 +51,14 @@ public class Constants
 			}
 		}
 		
+		/**
+		 * Find the language of a string.
+		 * 
+		 * @param str - The string to check
+		 * @return Hebrew if the string contains at least one character in hebrew;
+		 * 		   English if the string doesn't contain hebrew characters, but rather English ones;
+		 * 		   Generic if the string contains no Hebrew or English characters.
+		 */
 		private static Language getLanguage(String str) {
 			boolean containsEnglish = false;;
 			
@@ -64,7 +78,8 @@ public class Constants
 	
 	public static final class Icons
 	{
-		private static final String FOLDER = "icons/";
+		private static final String FOLDER = "/icons/";
+		public static final ImageIcon ICON = ImageHandler.loadIcon(FOLDER + "icon.png");
 		public static final ImageIcon COMPANY_LOGO = ImageHandler.loadIcon(FOLDER + "company_logo.png");
 		public static final ImageIcon CLEAR_X = ImageHandler.loadIcon(FOLDER + "clear.png");
 		public static final ImageIcon HOVER_CLEAR_X = ImageHandler.loadIcon(FOLDER + "hover_clear.png");

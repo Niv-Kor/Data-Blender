@@ -26,7 +26,7 @@ import javax.swing.text.StyledDocument;
 import javax.swing.text.StyledEditorKit;
 import javax.swing.text.View;
 import javax.swing.text.ViewFactory;
-import javaNK.util.IO.DirectortTrimmer;
+import javaNK.util.IO.DirectoryTrimmer;
 import sa_atarim.dblender.Constants;
 import sa_atarim.dblender.error.PopupError;
 
@@ -61,7 +61,7 @@ public class DropArea extends JTextPane
 					File file = droppedFile.get(0);
 					String path = file.getPath();
 					
-					if (!isTypeAllowed(DirectortTrimmer.extractFileExtension(path)))
+					if (!isTypeAllowed(DirectoryTrimmer.extractFileExtension(path)))
 						PopupError.TYPE_NOT_SUPPORTED.pop();
 					else {
 						filePath = path;
@@ -107,9 +107,11 @@ public class DropArea extends JTextPane
 	        return new StyledViewFactory();
 	    }
 		
-	    static class StyledViewFactory implements ViewFactory {
+	    private static class StyledViewFactory implements ViewFactory
+	    {
 	        public View create(Element elem) {
 	            String kind = elem.getName();
+	            
 	            if (kind != null) {
 	                if (kind.equals(AbstractDocument.ContentElementName))
 	                    return new LabelView(elem);
@@ -160,12 +162,13 @@ public class DropArea extends JTextPane
 	private static final Color BRIGHT_OCCUPIED_COLOR = new Color(186, 255, 193);
 	
 	private CustomizedDropTarget dropTarget;
+	private PropertyChangeSupport propertyChange;
 	private String defaultText, propertyChangeCode;
 	private Color areaColor, brightAreaColor;
-	private PropertyChangeSupport propertyChange;
 
 	/**
-	 * @param defaultText - The text to show as default before anything is dropped
+	 * @param defaultText - The text to show as a default when no file is present
+	 * @param propertyChangeCode - The name of the property that notifies about a file being set
 	 */
 	public DropArea(String defaultText, String propertyChangeCode) {
 		this.dropTarget = new CustomizedDropTarget(this);
@@ -209,7 +212,7 @@ public class DropArea extends JTextPane
 	 * @param fileName - The name of the file
 	 */
 	public void setFile(String filePath) {
-		String fileName = (filePath != null) ? DirectortTrimmer.extractFileName(filePath) : null;
+		String fileName = (filePath != null) ? DirectoryTrimmer.extractFileName(filePath) : null;
 		
 		if (fileName != null) {
 			this.areaColor = OCCUPIED_COLOR;
@@ -230,10 +233,20 @@ public class DropArea extends JTextPane
 		propertyChange.firePropertyChange(propertyChangeCode, "", filePath);
 	}
 	
+	/**
+	 * Assign a listener that will get notified whenever a file is set to the drop area.
+	 * When a file is set, the listener will be notified with its path.
+	 * 
+	 * @param listener - The object to notify about changes
+	 */
 	public void subscribePropertyChange(PropertyChangeListener listener) {
 		propertyChange.addPropertyChangeListener(listener);
 	}
 	
+	/**
+	 * Resize the file's name relative to its length,
+	 * in order to make it compatible with the box's area.
+	 */
 	private void calcMaxCharsPerLine() {
 		String text = getText();
 		if (text == null || text.equals("")) return;

@@ -25,7 +25,7 @@ public class ColumnsList extends JScrollPane
 		public Component getListCellRendererComponent(JList<? extends ListEntry> list, ListEntry value,
 			   										 int index, boolean isSelected, boolean cellHasFocus) {
 			setText(value.toString());
-			setIcon(value.getIcon());
+			setIcon(value.getEntryIcon().getIcon());
 			
 			if (isSelected) {
 				setBackground(list.getSelectionBackground());
@@ -65,6 +65,10 @@ public class ColumnsList extends JScrollPane
 	    setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_NEVER);
 	}
 	
+	/**
+	 * Sort the list.
+	 * Candidate entries go on top, and everything else gets sorted alphabetically.
+	 */
 	public void sort() {
 		ListEntry[] arr = new ListEntry[listModel.getSize()];
 		
@@ -78,31 +82,58 @@ public class ColumnsList extends JScrollPane
 			addEntry(arr[i]);
 	}
 	
+	/**
+	 * @param entry - The entry to add
+	 */
+	public void addEntry(ListEntry entry) { listModel.addElement(entry); }
 	
-	public void addEntry(ListEntry entry) {
-		listModel.addElement(entry);
-	}
+	/**
+	 * @param entry - The entry to remove
+	 */
+	public void removeEntry(ListEntry entry) { listModel.removeElement(entry); }
 	
-	public void removeEntry(ListEntry entry) {
-		listModel.removeElement(entry);
-	}
+	/**
+	 * Remove all entries from the list.
+	 */
+	public void removeAllEntries() { listModel.removeAllElements(); }
 	
-	public void removeAllEntries() {
-		listModel.removeAllElements();
-	}
+	/**
+	 * Select all of the list's entries.
+	 */
+	public void selectAll() { list.setSelectionInterval(0, listModel.getSize() - 1); }
 	
-	public void selectAll() {
-		list.setSelectionInterval(0, listModel.getSize() - 1);
-	}
+	/**
+	 * @return A list of the selected entries in the list.
+	 */
+	public List<ListEntry> getSelected() { return list.getSelectedValuesList(); }
 	
-	public void clearSelection() {
-		list.clearSelection();
-	}
+	/**
+	 * Get the amount of selected entries in the list.
+	 * This method does the same as getSelected().size() but with a lower time complexity. 
+	 * 
+	 * @return The amount of selected entries in the list.
+	 */
+	public int getSelectedEntriesAmount() { return list.getSelectedIndices().length; }
 	
-	public boolean containsEntry(ListEntry entry) {
-		return getEntry(entry.getValue()) != null;
-	}
+	/**
+	 * Cancel all selections in the list.
+	 */
+	public void clearSelection() { list.clearSelection(); }
 	
+	/**
+	 * Check if the list contains an entry with a similar value to a given entry.
+	 * 
+	 * @param entry - The entry to check
+	 * @return True if the list contains an entry with a similar value.
+	 */
+	public boolean containsEntry(ListEntry entry) { return getEntry(entry.getValue()) != null; }
+	
+	/**
+	 * Check if the list contains an entry with a certain entry icon.
+	 * 
+	 * @param icons - A vararg array of entry icons to check
+	 * @return True if the list contains at least one of the entry icons.
+	 */
 	public boolean containsEntry(EntryIcon ... icons) {
 		for (int i = 0; i < listModel.getSize(); i++) {
 			EntryIcon entryIcon = listModel.get(i).getEntryIcon();
@@ -114,6 +145,12 @@ public class ColumnsList extends JScrollPane
 		return false;
 	}
 	
+	/**
+	 * Find an entry in the list that has a certain value.
+	 * 
+	 * @param value - The value of the desired entry
+	 * @return An entry from the list that has the given value, or null if it doesn't exist.
+	 */
 	public ListEntry getEntry(String value) {
 		for (int i = 0; i < listModel.getSize(); i++)
 			if (listModel.get(i).getValue().equals(value)) return listModel.get(i);
@@ -121,18 +158,14 @@ public class ColumnsList extends JScrollPane
 		return null;
 	}
 	
-	public boolean isEmpty() {
-		return listModel.getSize() == 0;
-	}
+	/**
+	 * @return True if the list is empty.
+	 */
+	public boolean isEmpty() { return listModel.getSize() == 0; }
 	
-	public List<ListEntry> getSelected() {
-		return list.getSelectedValuesList();
-	}
-	
-	public int getSelectedEntriesAmount() {
-		return list.getSelectedIndices().length;
-	}
-	
+	/**
+	 * @return A list of all entries.
+	 */
 	public List<ListEntry> getAll() {
 		List<ListEntry> entries = new ArrayList<ListEntry>();
 		
@@ -143,9 +176,7 @@ public class ColumnsList extends JScrollPane
 	}
 	
 	@Override
-	public void addFocusListener(FocusListener listener) {
-		list.addFocusListener(listener);
-	}
+	public void addFocusListener(FocusListener listener) { list.addFocusListener(listener); }
 	
 	@Override
 	public void setBackground(Color color) {

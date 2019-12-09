@@ -16,15 +16,13 @@ public class SheetModifier
 	
 	private DataFormatter formatter;
 	private XSSFSheet xssfSheet;
-	private XLSFile file;
 	
 	/**
 	 * @param xssf - The original XSSFSheet object to modify
 	 */
-	public SheetModifier(XLSFile file, XSSFSheet xssf) {
+	public SheetModifier(XSSFSheet xssf) {
 		this.xssfSheet = xssf;
 		this.formatter = new DataFormatter();
-		this.file = file;
 	}
 	
 	/**
@@ -265,19 +263,25 @@ public class SheetModifier
 	public void alignCells(HorizontalAlignment headers, HorizontalAlignment data) {
 		int colCount = getColumnsAmount();
 		int headerIndex = getHeaderRowIndex();
-		CellStyle headerStyle = file.getWorkbook().createCellStyle();
-		CellStyle dataStyle = file.getWorkbook().createCellStyle();
+		CellStyle headerStyle = xssfSheet.getWorkbook().createCellStyle();
+		CellStyle dataStyle = xssfSheet.getWorkbook().createCellStyle();
 		headerStyle.setAlignment(headers);
 		dataStyle.setAlignment(data);
 		
 		for (int r = 0; r < xssfSheet.getPhysicalNumberOfRows(); r++) {
-			CellStyle alignment = (r == headerIndex) ? headerStyle : dataStyle;
+			HorizontalAlignment alignment = (r == headerIndex) ? headers : data;
+			CellStyle style = (r == headerIndex) ? headerStyle : dataStyle;
 			Row row = xssfSheet.getRow(r);
 			
 			if (row != null) {
 				for (int c = 0; c < colCount; c++) {
 					Cell cell = row.getCell(c);
-					if (cell != null) cell.setCellStyle(alignment);
+					
+					if (cell != null) {
+						style.cloneStyleFrom(cell.getCellStyle());
+						style.setAlignment(alignment);
+						cell.setCellStyle(style);
+					}
 				}
 			}
 		}

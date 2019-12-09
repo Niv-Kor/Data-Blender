@@ -7,17 +7,23 @@ import sa_atarim.dblender.GUI.column_selection.ListEntry.EntryIcon;
 
 public class Circuits
 {
+	private static final int CONNECTION_SIZE = 10;
 	private static final Color OFF_CIRCUIT_COLOR = new Color(0, 195, 255);
 	private static final Color ON_CIRCUIT_COLOR = new Color(104, 235, 175);
 	private static final Color FLOW_COLOR = new Color(211, 255, 164);
 	private static final Color CONNECTION_COLOR = new Color(140, 159, 164);
-	private static final int CONNECTION_SIZE = 10;
 	
 	private DropArea dropArea1, dropArea2;
 	private ColumnsList combinedList;
 	private Component component;
 	private boolean flow1, flow2, flow3;
 	
+	/**
+	 * @param component - The Swing component that contains the drawn circuit
+	 * @param drop1 - The left drop area
+	 * @param drop2 - The right drop area
+	 * @param combinedList - The combines list at the bottom
+	 */
 	public Circuits(Component component, DropArea drop1, DropArea drop2, ColumnsList combinedList) {
 		this.component = component;
 		this.dropArea1 = drop1;
@@ -28,12 +34,20 @@ public class Circuits
 		this.flow3 = false;
 	}
 	
+	/**
+	 * Refresh the circuit in case a wire should have been turning on but haven't.
+	 */
 	public void wake() {
 		component.validate();
 		component.revalidate();
 		component.repaint();
 	}
 	
+	/**
+	 * Paint the circuit's wires on the component.
+	 * 
+	 * @param g - The Graphics object to paint with
+	 */
 	public void paintCircuit(Graphics g) {
 		//drop area 1 to blender
 		g.setColor(getFlow1Color());
@@ -193,6 +207,13 @@ public class Circuits
 		paintCircuitConnection(g, 502, 590);
 	}
 	
+	/**
+	 * Paint an I/O connection at a certain point.
+	 * 
+	 * @param g - The Graphics object to paint with
+	 * @param contactX - The X value of the connection's center point
+	 * @param contactY - The Y value of the connection's center point
+	 */
 	private void paintCircuitConnection(Graphics g, int contactX, int contactY) {
 		Color colorBackup = g.getColor();
 		
@@ -203,41 +224,63 @@ public class Circuits
 		g.setColor(colorBackup);
 	}
 	
+	/**
+	 * @return The current color of the first section of wires.
+	 */
 	private Color getFlow1Color() {
-		Color color = getFlowColor(activateFile1ToBlender());
+		Color color = getFlowColor(activateSection1());
 		boolean isOn = color == ON_CIRCUIT_COLOR;
 		flow1 = isOn;
 		return color;
 	}
 	
+	/**
+	 * @return The current color of the second section of wires.
+	 */
 	private Color getFlow2Color() {
-		Color color = getFlowColor(activateFile2ToBlender());
+		Color color = getFlowColor(activateSection2());
 		boolean isOn = color == ON_CIRCUIT_COLOR;
 		flow2 = isOn;
 		return color;
 	}
 	
+	/**
+	 * @return The current color of the third section of wires.
+	 */
 	private Color getFlow3Color() {
-		Color color = getFlowColor(activateCombinedToLists());
+		Color color = getFlowColor(activateSection3());
 		boolean isOn = color == ON_CIRCUIT_COLOR;
 		flow3 = isOn;
 		return color;
 	}
 	
-	private boolean activateFile1ToBlender() {
+	/**
+	 * @return True if the first section should light up.
+	 */
+	private boolean activateSection1() {
 		return dropArea1.isOccupied();
 	}
 	
-	private boolean activateFile2ToBlender() {
+	/**
+	 * @return True if the second section should light up.
+	 */
+	private boolean activateSection2() {
 		return dropArea2.isOccupied();
 	}
 	
-	private boolean activateCombinedToLists() {
+	/**
+	 * @return True if the third section should light up.
+	 */
+	private boolean activateSection3() {
 		return combinedList.containsEntry(EntryIcon.GREEN_CANDIDATE,
 										  EntryIcon.BLUE_CANDIDATE,
 										  EntryIcon.GRAY_CANDIDATE);
 	}
 	
+	/**
+	 * @param flag - True to retrieve the lighten color or false to retrieve the turned off one
+	 * @return A wire's color according to the flag.
+	 */
 	private Color getFlowColor(boolean flag) {
 		return flag ? ON_CIRCUIT_COLOR : OFF_CIRCUIT_COLOR;
 	}

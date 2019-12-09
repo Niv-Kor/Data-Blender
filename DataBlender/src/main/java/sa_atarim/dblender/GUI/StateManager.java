@@ -3,7 +3,6 @@ import java.util.ArrayList;
 import java.util.List;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
-import sa_atarim.dblender.GUI.states.MainState;
 
 public class StateManager
 {

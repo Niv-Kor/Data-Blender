@@ -1,7 +1,7 @@
 package sa_atarim.dblender;
+import sa_atarim.dblender.GUI.MainWindow;
 import sa_atarim.dblender.GUI.StateManager;
 import sa_atarim.dblender.GUI.StateManager.Substate;
-import sa_atarim.dblender.GUI.windows.MainWindow;
 
 public class Driver
 {

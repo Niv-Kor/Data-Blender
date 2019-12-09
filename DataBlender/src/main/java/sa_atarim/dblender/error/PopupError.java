@@ -33,15 +33,14 @@ public enum PopupError
 	 * @param title - The title of the error
 	 * @param msg - An informative message explaining the error
 	 * @param icon - The icon to show in the window
-	 * @param msgType - JOptionPane constant
 	 * @param errorIndex - The index to in the title
 	 */
 	private PopupError(String title, String msg, Icon icon, int errorIndex) {
 		String error = "Error #" + errorIndex;
 		String errorTitle = error + ": " + title + ":";
 		this.message = new JLabel("<html>" + errorTitle + "<br><br>" + msg + "</html>");
-		this.icon = icon;
 		this.windowTitle = Constants.PROGRAM_NAME + " " + error;
+		this.icon = icon;
 	}
 	
 	/**

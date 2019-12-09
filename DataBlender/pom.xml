@@ -14,14 +14,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   
-  <repositories>
-		<repository>
-			<id>com.java.utilities</id>
-	    	<name>java.util Maven Plugin</name>
-	   		<url>https://github.com/Niv-Kor/JavaUtilities.git</url>
-		</repository>
-	</repositories>
-  
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -30,23 +22,5 @@
       <scope>test</scope>
     </dependency>
     
-    <dependency>
-	    <groupId>org.apache.poi</groupId>
-	    <artifactId>poi</artifactId>
-	    <version>4.1.0</version>
-	</dependency>
-	
-	<dependency>
-	    <groupId>org.apache.poi	</groupId>
-	    <artifactId>poi-ooxml</artifactId>
-	    <version>4.1.0</version>
-	</dependency>
-    
-    <dependency>
-     	<groupId>com.java.utilities</groupId>
-     	<artifactId>java.util</artifactId>
-     	<version>1.0.3.0</version>
-     	<scope>System</scope>
-		</dependency>
   </dependencies>
 </project>

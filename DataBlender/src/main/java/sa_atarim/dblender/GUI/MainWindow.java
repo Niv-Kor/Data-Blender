@@ -1,4 +1,4 @@
-package sa_atarim.dblender.GUI.windows;
+package sa_atarim.dblender.GUI;
 import java.awt.Color;
 import java.awt.Dimension;
 import javaNK.util.GUI.swing.containers.Window;
@@ -11,6 +11,7 @@ public class MainWindow extends Window
 	
 	public MainWindow() {
 		super(Constants.PROGRAM_TITLE);
+		setIconImage(Constants.Icons.ICON.getImage());
 	}
 
 	@Override

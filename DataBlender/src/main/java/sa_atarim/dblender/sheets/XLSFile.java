@@ -5,9 +5,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import javaNK.util.IO.DirectortTrimmer;
+import javaNK.util.IO.DirectoryTrimmer;
 import javaNK.util.files.FileLoader;
-import sa_atarim.dblender.Constants;
 
 public class XLSFile extends FileLoader
 {
@@ -19,13 +18,14 @@ public class XLSFile extends FileLoader
 
 	/**
 	 * @param path - The logical path of the sheet
+	 * @throws IOExcetion If the file cannot be opened.
 	 */
 	public XLSFile(String path) throws IOException {
 		this.file =  new File(path);
-		this.fileName = DirectortTrimmer.extractFileName(path);
+		this.fileName = DirectoryTrimmer.extractFileName(path);
 		this.inputStream = new FileInputStream(file);
 		this.workbook = new XSSFWorkbook(inputStream);
-		this.sheet = new SheetModifier(this, workbook.getSheetAt(0));
+		this.sheet = new SheetModifier(workbook.getSheetAt(0));
 	}
 	
 	/**
@@ -43,7 +43,6 @@ public class XLSFile extends FileLoader
 		try {
 			//modify sheet
 			sheet.ignoreCellFormatWarnings();
-			sheet.alignCells(Constants.HEADERS_ALIGNMENT, Constants.DATA_ALIGNMENT);
 			
 			FileOutputStream outputStream = new FileOutputStream(file);
 			workbook.write(outputStream);

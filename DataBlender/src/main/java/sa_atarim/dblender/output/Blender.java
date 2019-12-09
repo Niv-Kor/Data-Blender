@@ -9,19 +9,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Stack;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFFont;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.sheets.ConstantCell;
+import sa_atarim.dblender.sheets.ConstantCellSet;
 import sa_atarim.dblender.sheets.SheetModifier;
 import sa_atarim.dblender.sheets.XLSFile;
-import sa_atarim.dblender.sheets.key_column.ConstantCell;
-import sa_atarim.dblender.sheets.key_column.KeyTupleSet;
 
 public class Blender
 {
@@ -38,19 +43,24 @@ public class Blender
 		
 		List<FileSpecification> files = request.getFiles();
 		XLSFile blendedFile = createEmptyFile(request);
+		String keyColumnName = request.getKeyColumn();
 		duplicate(files.get(0), blendedFile);
 		
 		for (int i = 1; i < files.size(); i++)
-			integrate(files.get(i), blendedFile, request.getKeyColumn(), request.usesIntersection());
+			integrate(files.get(i), blendedFile, keyColumnName, request.usesIntersection());
 		
-		groupSimilarKeys(blendedFile, request.getKeyColumn());
+		groupSimilarKeys(blendedFile, keyColumnName);
+		blendedFile.getSheet().alignCells(Constants.HEADERS_ALIGNMENT, Constants.DATA_ALIGNMENT);
+		highlightCruicialCells(blendedFile, keyColumnName, IndexedColors.TEAL,
+							   IndexedColors.WHITE, IndexedColors.AQUA);
+		
 		blendedFile.write();
 		
 		//close all files
 		for (FileSpecification specification : files) specification.getFile().close();
 		blendedFile.close();
 	}
-	
+
 	/**
 	 * Create an empty file according to the given specification.
 	 * 
@@ -129,10 +139,10 @@ public class Blender
 		int destNewColIndex = destSourceSheet.getRow(destSheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
 		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
 		int originKeyColIndex = originSheet.getColumnIndex(keyColumn);
-		KeyTupleSet finalKeyVals;
+		ConstantCellSet finalKeyVals;
 		
 		//retrieve the origin key values as a set
-		KeyTupleSet originKeyVals = new KeyTupleSet();
+		ConstantCellSet originKeyVals = new ConstantCellSet();
 		
 		for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
@@ -140,7 +150,7 @@ public class Blender
 		}
 		
 		//retrieve the destination key values as a set
-		KeyTupleSet destKeyVals = new KeyTupleSet();
+		ConstantCellSet destKeyVals = new ConstantCellSet();
 		
 		for (int r = destSheet.getHeaderRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
 			XSSFCell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
@@ -153,7 +163,7 @@ public class Blender
 		}
 		else {
 			//create a set that's exclusive for the origin key values
-			KeyTupleSet exclusiveOriginKeyVals = new KeyTupleSet(originKeyVals);
+			ConstantCellSet exclusiveOriginKeyVals = new ConstantCellSet(originKeyVals);
 			Queue<ConstantCell> keysToRemove = new LinkedList<ConstantCell>();
 			Stack<ConstantCell> keysStack = new Stack<ConstantCell>();
 			
@@ -168,6 +178,7 @@ public class Blender
 			
 			//create a new row for each of the exclusive origin key values
 			int destNewRowIndex = destSourceSheet.getPhysicalNumberOfRows();
+			
 			for (int r = destNewRowIndex; r < destNewRowIndex + exclusiveOriginKeyVals.size(); r++) {
 				XSSFRow destRow = destSourceSheet.createRow(r);
 				XSSFCell destCell = destRow.createCell(destKeyColIndex);
@@ -180,7 +191,7 @@ public class Blender
 			}
 			
 			//use the union of both files' key values
-			finalKeyVals = new KeyTupleSet(destKeyVals);
+			finalKeyVals = new ConstantCellSet(destKeyVals);
 			finalKeyVals.addAll(exclusiveOriginKeyVals);
 		}
 		
@@ -199,7 +210,7 @@ public class Blender
 			copyCell(originCell, destCell);
 			
 			//clone the original key values set for each column
-			KeyTupleSet keyValsClone = new KeyTupleSet(finalKeyVals);
+			ConstantCellSet keyValsClone = new ConstantCellSet(finalKeyVals);
 			
 			//iterate over every row of the origin and match it with the destination
 			for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
@@ -229,6 +240,12 @@ public class Blender
 		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
 	}
 	
+	/**
+	 * Group together rows that contain similar key values.
+	 * 
+	 * @param file - The file to work on
+	 * @param keyColumn - Name of the key column
+	 */
 	private void groupSimilarKeys(XLSFile file, String keyColumn) {
 		SheetModifier sheet = file.getSheet();
 		XSSFSheet source = sheet.getSource();
@@ -303,13 +320,66 @@ public class Blender
 	}
 	
 	/**
+	 * Highlight the header of the key column.
+	 * 
+	 * @param destination - The destination file
+	 * @param keyColumn - The name of the key column
+	 * @param headerBG - Header highlight color
+	 * @param headerFG - Header highlight color
+	 * @param dataBG - Data highlight color
+	 */
+	private void highlightCruicialCells(XLSFile destination, String headerName, IndexedColors headerBG,
+								 		IndexedColors headerFG, IndexedColors dataBG) {
+		
+		SheetModifier sheet = destination.getSheet();
+		XSSFSheet source = sheet.getSource();
+		XSSFWorkbook workbook = source.getWorkbook();
+		int headerRowIndex = sheet.getHeaderRowIndex();
+		int columnIndex = sheet.getColumnIndex(headerName);
+		
+		//highlight headers
+		for (int i = 0; i < sheet.getColumnsAmount(); i++) {
+			Row headerRow = source.getRow(headerRowIndex);
+			Cell headerCell = headerRow.getCell(i);
+			CellStyle headerStyle = workbook.createCellStyle();
+			headerStyle.cloneStyleFrom(headerCell.getCellStyle());
+			 
+			XSSFFont headerFont = workbook.createFont();
+		    headerFont.setFontHeightInPoints((short) 11);
+		    headerFont.setFontName("Arial");
+		    headerFont.setColor(headerFG.getIndex());
+		    
+		    headerStyle.setFont(headerFont);
+			headerStyle.setFillBackgroundColor(headerBG.getIndex());
+			headerStyle.setFillForegroundColor(headerBG.getIndex());
+			headerStyle.setFillPattern(FillPatternType.LESS_DOTS);
+			
+			headerCell.setCellStyle(headerStyle);
+		}
+		
+		//highlight column data
+		for (int i = headerRowIndex + 1; i < source.getPhysicalNumberOfRows(); i++) {
+			Row row = source.getRow(i);
+			Cell cell = row.getCell(columnIndex);
+			CellStyle dataStyle = source.getWorkbook().createCellStyle();
+		    dataStyle.cloneStyleFrom(cell.getCellStyle());
+		    
+		    dataStyle.setFillBackgroundColor(dataBG.getIndex());
+		    dataStyle.setFillForegroundColor(IndexedColors.WHITE.getIndex());
+		    dataStyle.setFillPattern(FillPatternType.LESS_DOTS);
+		    
+		    cell.setCellStyle(dataStyle);
+		}
+	}
+	
+	/**
 	 * Delete rows that contain key values that are not in the intersected keys set.
 	 * 
 	 * @param sheet - The destination sheet
 	 * @param keyColumnIndex - Index of the key column in the destination sheet
 	 * @param intersectedKeys - A set of the intersected key values between all sheets
 	 */
-	private void deleteUnnecessaryRows(SheetModifier sheet, int keyColumnIndex, KeyTupleSet intersectedKeys) {
+	private void deleteUnnecessaryRows(SheetModifier sheet, int keyColumnIndex, ConstantCellSet intersectedKeys) {
 		XSSFSheet sourceSheet = sheet.getSource();
 		
 		for (int i = sheet.getHeaderRowIndex() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {

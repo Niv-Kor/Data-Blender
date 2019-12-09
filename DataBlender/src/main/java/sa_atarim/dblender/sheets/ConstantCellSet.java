@@ -1,13 +1,16 @@
-package sa_atarim.dblender.sheets.key_column;
+package sa_atarim.dblender.sheets;
 import java.util.HashSet;
 
-public class KeyTupleSet extends HashSet<ConstantCell>
+public class ConstantCellSet extends HashSet<ConstantCell>
 {
 	private static final long serialVersionUID = -2883857792760452910L;
 	
-	public KeyTupleSet() { super(); }
+	public ConstantCellSet() { super(); }
 	
-	public KeyTupleSet(KeyTupleSet set) { super(set); }
+	/**
+	 * @param set - A set to include in the new object
+	 */
+	public ConstantCellSet(ConstantCellSet set) { super(set); }
 	
 	/**
 	 * @param set - A set of key values
@@ -21,9 +24,11 @@ public class KeyTupleSet extends HashSet<ConstantCell>
 		return null;
 	}
 	
-	public boolean containsValue(Object value) {
-		return getSimilarValue(value) != null;
-	}
+	/**
+	 * @param value - The value to check
+	 * @return True if the set contains cell with a similar value.
+	 */
+	public boolean containsValue(Object value) { return getSimilarValue(value) != null; }
 	
 	/**
 	 * Create a set of key values that contains an intersection of all given sets.
@@ -32,13 +37,13 @@ public class KeyTupleSet extends HashSet<ConstantCell>
 	 * @param integrators - All other key values sets
 	 * @return An intersection of all sets.
 	 */
-	public KeyTupleSet intersect(KeyTupleSet ... integrators) {
-		KeyTupleSet intersectionKeyVals = new KeyTupleSet(this);
+	public ConstantCellSet intersect(ConstantCellSet ... integrators) {
+		ConstantCellSet intersectionKeyVals = new ConstantCellSet(this);
 		
 		for (ConstantCell key1 : this) {
 			boolean match = false;
 			
-			for (KeyTupleSet integrator : integrators) {
+			for (ConstantCellSet integrator : integrators) {
 				for (ConstantCell key2 : integrator) {
 					if (key1.equals(key2)) {
 						match = true;
