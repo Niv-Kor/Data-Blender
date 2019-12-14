@@ -12,10 +12,11 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 public class SheetModifier
 {
-	private static final int FIRST_ROW_CHECK_SAMPLE = 10;
+	private static final int FIRST_ROW_CHECK_SAMPLE = 25;
 	
 	private DataFormatter formatter;
 	private XSSFSheet xssfSheet;
+	private int headerRowIndex; 
 	
 	/**
 	 * @param xssf - The original XSSFSheet object to modify
@@ -23,13 +24,14 @@ public class SheetModifier
 	public SheetModifier(XSSFSheet xssf) {
 		this.xssfSheet = xssf;
 		this.formatter = new DataFormatter();
+		this.headerRowIndex = findHeaderRowIndex();
 	}
 	
 	/**
 	 * @return An array of the columns names (the values of the headers).
 	 */
 	public String[] getColumnNames() {
-		XSSFRow firstRow = xssfSheet.getRow(getHeaderRowIndex());
+		Row firstRow = xssfSheet.getRow(headerRowIndex);
 		int columns = firstRow.getPhysicalNumberOfCells();
 		String[] columnNames = new String[columns];
 		
@@ -57,10 +59,10 @@ public class SheetModifier
 	 */
 	public String[] getEntireColumn(int colIndex) {
 		int rowCount = xssfSheet.getPhysicalNumberOfRows();
-		String[] columnContent = new String[rowCount];
+		String[] columnContent = new String[rowCount - 1];
 		
-		for (int i = getHeaderRowIndex() + 1; i < xssfSheet.getLastRowNum(); i++) {
-			XSSFRow row = xssfSheet.getRow(i);
+		for (int r = headerRowIndex + 1, i = 0; r < rowCount && i < columnContent.length; r++, i++) {
+			Row row = xssfSheet.getRow(r);
 			columnContent[i] = cellValueString(row, colIndex);
 		}
 		
@@ -68,9 +70,35 @@ public class SheetModifier
 	}
 	
 	/**
+	 * Check if an entire column is full with data.
+	 * 
+	 * @param colName - The name of the column
+	 * @return True if the entire column is full with data.
+	 */
+	public boolean isColumnFull(String colName) {
+		return isColumnFull(getColumnIndex(colName));
+	}
+	
+	/**
+	 * Check if an entire column is full with data.
+	 * 
+	 * @param colIndex - The index of the column
+	 * @return True if the entire column is full with data.
+	 */
+	public boolean isColumnFull(int colIndex) {
+		String[] colContent = getEntireColumn(colIndex);
+		int nonNullCounter = 0;
+		
+		for (String row : colContent)
+			if (row != null && !row.equals("")) nonNullCounter++;
+		
+		return nonNullCounter == colContent.length;
+	}
+	
+	/**
 	 * @return The index of the row that contains the headers.
 	 */
-	public int getHeaderRowIndex() {
+	public int findHeaderRowIndex() {
 		int maxCells = 0, largestRow = 0;
 		
 		for (int i = 0; i < xssfSheet.getPhysicalNumberOfRows() && i < FIRST_ROW_CHECK_SAMPLE; i++) {
@@ -91,11 +119,16 @@ public class SheetModifier
 	}
 	
 	/**
+	 * @return True if the file contains no data.
+	 */
+	public boolean isEmpty() { return getColumnsAmount() == 0; }
+	
+	/**
 	 * @return The amount of columns in the sheet.
 	 */
 	public int getColumnsAmount() {
 		try {
-			Row headerRow = xssfSheet.getRow(getHeaderRowIndex());
+			Row headerRow = xssfSheet.getRow(headerRowIndex);
 			return headerRow.getPhysicalNumberOfCells();
 		}
 		catch (Exception e) { return 0; }
@@ -179,10 +212,10 @@ public class SheetModifier
 	public void insertRowAfter(int rowIndex, int afterRow) {
 		//copy the row
 		Row originRow = xssfSheet.getRow(rowIndex);
-		String[] originValues = new String[xssfSheet.getRow(getHeaderRowIndex()).getPhysicalNumberOfCells()];
+		ConstantCell[] originValues = new ConstantCell[xssfSheet.getRow(headerRowIndex).getPhysicalNumberOfCells()];
 		
 		for (int i = 0; i < originValues.length; i++)
-			originValues[i] = cellValueString(originRow, i);
+			originValues[i] = new ConstantCell(i, originRow.getCell(i));
 		
 		//delete the row
 		deleteRow(rowIndex);
@@ -196,7 +229,7 @@ public class SheetModifier
 	 * @param rowBuffer - An array that contains the entire row to insert
 	 * @param afterRow - Insert the row after this row's index
 	 */
-	public void insertRowAfter(String[] rowBuffer, int afterRow) {
+	public void insertRowAfter(ConstantCell[] rowBuffer, int afterRow) {
 		//shift everything down by 1
 		shiftRows(afterRow + 1, 1);
 		
@@ -205,7 +238,7 @@ public class SheetModifier
 		
 		for (int i = 0; i < rowBuffer.length; i++) {
 			Cell destCell = destRow.createCell(i);
-			destCell.setCellValue(rowBuffer[i]);
+			CellFormat.setGenericValue(destCell, rowBuffer[i].value);
 		}
 	}
 	
@@ -217,7 +250,7 @@ public class SheetModifier
 		int rowsAmount = xssfSheet.getPhysicalNumberOfRows();
 		
 		if (rowsAmount >= 1) {
-			int colAmount = xssfSheet.getRow(getHeaderRowIndex()).getPhysicalNumberOfCells();
+			int colAmount = xssfSheet.getRow(headerRowIndex).getPhysicalNumberOfCells();
 			CellRangeAddress cellRange = new CellRangeAddress(0, rowsAmount, 0, colAmount);
 			xssfSheet.addIgnoredErrors(cellRange, IgnoredErrorType.NUMBER_STORED_AS_TEXT);
 		}
@@ -233,25 +266,7 @@ public class SheetModifier
 	public Object getGenericCellValue(int rowIndex, int cellIndex) {
 		Row row = xssfSheet.getRow(rowIndex);
 		Cell cell = row.getCell(cellIndex);
-		return getGenericCellValue(cell);
-	}
-	
-	/**
-	 * Get a cell's value as type Object.
-	 * 
-	 * @param cell - The cell object
-	 * @return The value of the cell as type Object.
-	 */
-	public static Object getGenericCellValue(Cell cell) {
-		Object value;
-		
-		switch (cell.getCellType()) {
-			case NUMERIC: value = cell.getNumericCellValue(); break;
-			case BOOLEAN: value = cell.getBooleanCellValue(); break;
-			default: value = cell.getStringCellValue();
-		}
-		
-		return value;
+		return CellFormat.getGenericValue(cell);
 	}
 	
 	/**
@@ -262,7 +277,7 @@ public class SheetModifier
 	 */
 	public void alignCells(HorizontalAlignment headers, HorizontalAlignment data) {
 		int colCount = getColumnsAmount();
-		int headerIndex = getHeaderRowIndex();
+		int headerIndex = headerRowIndex;
 		CellStyle headerStyle = xssfSheet.getWorkbook().createCellStyle();
 		CellStyle dataStyle = xssfSheet.getWorkbook().createCellStyle();
 		headerStyle.setAlignment(headers);
@@ -351,6 +366,8 @@ public class SheetModifier
 	public Boolean cellValueBoolean(Row row, String column) {
 		return Boolean.parseBoolean(cellValueString(row, column));
 	}
+	
+	public int getHeaderRowIndex() { return headerRowIndex; }
 	
 	/**
 	 * Get the source xssf sheet of this Sheet object.

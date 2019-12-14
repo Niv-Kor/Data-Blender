@@ -80,6 +80,15 @@ public class ListEntry implements Comparable<ListEntry>
 	
 	@Override
 	public String toString() { return getValue(); }
+	
+	@Override
+	public boolean equals(Object other) {
+		if (!(other instanceof ListEntry)) return false;
+		else return value.equals(((ListEntry) other).value);
+	}
+	
+	@Override
+	public int hashCode() { return value.hashCode(); }
 
 	@Override
 	public int compareTo(ListEntry o) {

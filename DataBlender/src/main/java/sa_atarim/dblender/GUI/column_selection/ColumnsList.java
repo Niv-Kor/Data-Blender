@@ -116,6 +116,11 @@ public class ColumnsList extends JScrollPane
 	public int getSelectedEntriesAmount() { return list.getSelectedIndices().length; }
 	
 	/**
+	 * @return The amount of entries in the list.
+	 */
+	public int getEntriesAmount() { return listModel.getSize(); }
+	
+	/**
 	 * Cancel all selections in the list.
 	 */
 	public void clearSelection() { list.clearSelection(); }

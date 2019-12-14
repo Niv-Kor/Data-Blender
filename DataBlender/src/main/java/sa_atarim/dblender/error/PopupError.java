@@ -1,33 +1,35 @@
 package sa_atarim.dblender.error;
-import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import sa_atarim.dblender.Constants;
 
 public enum PopupError
 {
-	MULTIPLE_FILES("Multiple Files Input",
-				   "This area can only accept one file.",
-				   Constants.Icons.ERROR, 101),
+	MULTIPLE_FILES("Multiple Files Input", 101,
+				   "This area can only accept one file."),
 	
-	TYPE_NOT_SUPPORTED("Unsupported File",
+	TYPE_NOT_SUPPORTED("Unsupported File", 102,
 					   "The file type you entered is not supported.<br>"
-					 + "Supported types: xls, xlsx",
-					   Constants.Icons.ERROR, 102),
+					 + "Supported types: xls, xlsx"),
 	
-	NO_FILES("Missing Files",
-			 "The blender must receive exactly 2 files.",
-			 Constants.Icons.ERROR, 103),
+	FILE_EMPTY("File is Empty", 103,
+		       "The file you entered contains no data.<br>"
+		     + "Please check again."),
 	
-	NO_KEY("Missing Key Column",
-		   "The file cannot be processed without a key column (yellow sqaure).",
-		   Constants.Icons.ERROR, 104);
+	NO_FILES("Missing Files", 104,
+			 "The blender must receive exactly two files."),
+	
+	NO_KEY("Missing Key Column", 201,
+		   "The file cannot be processed without a key column (yellow sqaure)."),
+	
+	KEY_INCOMPATIBLE("Key is Incompatible", 202,
+				     "The key column you selected is not a suitable key,<br>"
+				   + "because there might be some rows that contain no data for it.");
 	
 	private static final float FONT_SIZE = 13f;
 	
 	private String windowTitle;
 	private JLabel message;
-	private Icon icon;
 	
 	/**
 	 * @param title - The title of the error
@@ -35,12 +37,11 @@ public enum PopupError
 	 * @param icon - The icon to show in the window
 	 * @param errorIndex - The index to in the title
 	 */
-	private PopupError(String title, String msg, Icon icon, int errorIndex) {
+	private PopupError(String title, int errorIndex, String msg) {
 		String error = "Error #" + errorIndex;
-		String errorTitle = error + ": " + title + ":";
+		String errorTitle = error + ": " + title + ".";
 		this.message = new JLabel("<html>" + errorTitle + "<br><br>" + msg + "</html>");
 		this.windowTitle = Constants.PROGRAM_NAME + " " + error;
-		this.icon = icon;
 	}
 	
 	/**
@@ -48,6 +49,6 @@ public enum PopupError
 	 */
 	public void pop() {
 		message.setFont(Constants.Fonts.MAIN.deriveFont(FONT_SIZE));
-		JOptionPane.showMessageDialog(null, message, windowTitle, JOptionPane.ERROR_MESSAGE, icon);
+		JOptionPane.showMessageDialog(null, message, windowTitle, JOptionPane.ERROR_MESSAGE, Constants.Icons.ERROR);
 	}
 }

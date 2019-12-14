@@ -1,19 +1,12 @@
 package sa_atarim.dblender.sheets;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
 
 public class ConstantCell
 {
 	public int index;
 	public Object value;
-	
-	/**
-	 * @param index - Index of the cell
-	 * @param val - Value of the cell
-	 */
-	public ConstantCell(int index, Object val) {
-		this.index = index;
-		this.value = val;
-	}
+	public CellStyle cellStyle;
 	
 	/**
 	 * @param index - Index of the cell
@@ -21,7 +14,8 @@ public class ConstantCell
 	 */
 	public ConstantCell(int index, Cell cell) {
 		this.index = index;
-		this.value = cell.getStringCellValue();
+		this.value = CellFormat.getGenericValue(cell);
+		this.cellStyle = (cell != null) ? cell.getCellStyle() : null;
 	}
 	
 	@Override
@@ -32,4 +26,7 @@ public class ConstantCell
 		}
 		catch (ClassCastException e) { return false; }
 	}
+	
+	@Override
+	public String toString() { return String.valueOf(value); }
 }

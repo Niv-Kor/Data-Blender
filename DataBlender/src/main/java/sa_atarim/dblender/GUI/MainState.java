@@ -23,6 +23,7 @@ import javaNK.util.GUI.swing.components.InteractiveIcon;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
 import javaNK.util.IO.DirectoryTrimmer;
+import javaNK.util.collections.ListHandler;
 import javaNK.util.math.DimensionalHandler;
 import sa_atarim.dblender.Constants;
 import sa_atarim.dblender.GUI.column_selection.ColumnsList;
@@ -60,7 +61,7 @@ public class MainState extends State implements PropertyChangeListener
 	private JComboBox<String> keyColumnDropdown;
 	private OutputRequest outputRequest;
 	private JCheckBox intersectBox;
-	private Circuits circuits;
+	private Circuit circuit;
 	private Blender blender;
 	
 	public MainState(Window window) {
@@ -77,7 +78,7 @@ public class MainState extends State implements PropertyChangeListener
 		createSelectionLists();
 		
 		//the visual circuits drawn onto the panel 
-		this.circuits = new Circuits(getWindow(), fileDrop1, fileDrop2, combinedList);
+		this.circuit = new Circuit(getWindow(), fileDrop1, fileDrop2, combinedList);
 	}
 	
 	/**
@@ -176,8 +177,8 @@ public class MainState extends State implements PropertyChangeListener
 	 * Create the components that are responsible for selecting the columns for each of the files.
 	 */
 	private void createSelectionLists() {
-		//files lists
-		Dimension fileListDim = DimensionalHandler.adjust(getWindow().getDimension(), 30, 30);
+		//file 1 list
+		Dimension fileListDim = DimensionalHandler.adjust(getWindow().getDimension(), 30, 25);
 		
 		this.file1List = new ColumnsList();
 		file1List.setPreferredSize(fileListDim);
@@ -189,12 +190,57 @@ public class MainState extends State implements PropertyChangeListener
 		gbc.gridy = 2;
 		panes[0].add(file1List, gbc);
 		
+		//file 1 select all
+		InteractiveIcon selectAll1 = new InteractiveIcon(Constants.Icons.SELECT_ALL);
+		selectAll1.setHoverIcon(Constants.Icons.HOVER_SELECT_ALL);
+		selectAll1.setFunction(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				boolean allSelected = file1List.getSelectedEntriesAmount() == file1List.getEntriesAmount();
+				
+				if (allSelected) file1List.clearSelection();
+				else file1List.selectAll();
+					
+				return null;
+			}
+		});
+		
+		gbc.insets.top = -86;
+		gbc.insets.left = -200;
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		panes[0].add(selectAll1, gbc);
+		
+		//file 2 list
 		this.file2List = new ColumnsList();
 		file2List.setPreferredSize(fileListDim);
 		
+		gbc.insets.top = 50;
+		gbc.insets.left = 0;
 		gbc.gridx = 2;
 		gbc.gridy = 2;
 		panes[0].add(file2List, gbc);
+		
+		//file 1 select all
+		InteractiveIcon selectAll2 = new InteractiveIcon(Constants.Icons.SELECT_ALL);
+		selectAll2.setHoverIcon(Constants.Icons.HOVER_SELECT_ALL);
+		selectAll2.setFunction(new Callable<Void>() {
+			@Override
+			public Void call() throws Exception {
+				boolean allSelected = file2List.getSelectedEntriesAmount() == file2List.getEntriesAmount();
+				
+				if (allSelected) file2List.clearSelection();
+				else file2List.selectAll();
+					
+				return null;
+			}
+		});
+		
+		gbc.insets.top = -86;
+		gbc.insets.right = -195;
+		gbc.gridx = 2;
+		gbc.gridy = 2;
+		panes[0].add(selectAll2, gbc);
 		
 		//shift button
 		this.shiftFwdButton = new InteractiveIcon(Constants.Icons.SHIFT_FWD);
@@ -220,7 +266,7 @@ public class MainState extends State implements PropertyChangeListener
 		changeShiftArrow(shiftFwdButton);
 		
 		//combined list
-		Dimension combinedListDim = DimensionalHandler.adjust(panes[1].getPreferredSize(), 82.8, 60);
+		Dimension combinedListDim = DimensionalHandler.adjust(panes[1].getPreferredSize(), 82.8, 75);
 		
 		this.combinedList = new ColumnsList();
 		combinedList.setPreferredSize(combinedListDim);
@@ -239,6 +285,7 @@ public class MainState extends State implements PropertyChangeListener
 			}
 		});
 		
+		gbc.insets.right = 0;
 		gbc.insets.top = -40;
 		gbc.gridx = 0;
 		gbc.gridy = 0;
@@ -271,7 +318,7 @@ public class MainState extends State implements PropertyChangeListener
 			}
 		});
 		
-		gbc.insets.top = 50;
+		gbc.insets.top = 10;
 		gbc.insets.left = -12;
 		gbc.gridx = 0;
 		gbc.gridy = 1;
@@ -361,9 +408,15 @@ public class MainState extends State implements PropertyChangeListener
 				PopupError.NO_KEY.pop();
 				return;
 			}
+			else if (!droppedFile1.getSheet().isColumnFull(outputRequest.getKeyColumn()) ||
+					 !droppedFile2.getSheet().isColumnFull(outputRequest.getKeyColumn())) {
+				
+				PopupError.KEY_INCOMPATIBLE.pop();
+				return;
+			}
 			
 			else {
-				String filePath = FileProcessor.saveFileToDirectory();
+				String filePath = FileProcessor.getDesiredDirectory();
 				String directory = DirectoryTrimmer.extractDirectory(filePath);
 				String fileName = DirectoryTrimmer.extractFileName(filePath);
 				
@@ -399,7 +452,7 @@ public class MainState extends State implements PropertyChangeListener
 				break;
 		}
 		
-		circuits.wake();
+		circuit.refresh();
 	}
 	
 	/**
@@ -419,19 +472,37 @@ public class MainState extends State implements PropertyChangeListener
 			case FILE_1:
 				outputRequest.removeFile(file1Specification);
 				droppedFile1 = new XLSFile(filePath);
+				
+				//file is empty
+				if (droppedFile1.getSheet().isEmpty()) {
+					clearFile(FileIndex.FILE_1);
+					PopupError.FILE_EMPTY.pop();
+					return;
+				}
+				
 				file1Specification = new FileSpecification(droppedFile1);
 				outputRequest.addFile(file1Specification);
 				columnNames = droppedFile1.getSheet().getColumnNames();
 				list = file1List;
 				break;
+				
 			case FILE_2:
 				outputRequest.removeFile(file2Specification);
 				droppedFile2 = new XLSFile(filePath);
+				
+				//file is empty
+				if (droppedFile2.getSheet().isEmpty()) {
+					clearFile(FileIndex.FILE_2);
+					PopupError.FILE_EMPTY.pop();
+					return;
+				}
+				
 				file2Specification = new FileSpecification(droppedFile2);
 				outputRequest.addFile(file2Specification);
 				columnNames = droppedFile2.getSheet().getColumnNames();
 				list = file2List;
 				break;
+				
 			default: return;
 		}
 		
@@ -441,7 +512,7 @@ public class MainState extends State implements PropertyChangeListener
 		//find the key column candidates and highlight them
 		suggestCandidatesEntries();
 		refreshLists();
-		circuits.wake();
+		circuit.refresh();
 	}
 	
 	/**
@@ -452,19 +523,11 @@ public class MainState extends State implements PropertyChangeListener
 		List<ListEntry> list2Selected = file2List.getSelected();
 		
 		//intersect both sets
-		List<ListEntry> selectedIntersection = intersectLists(list1Selected, list2Selected);
-		List<ListEntry> selectedUnion = new ArrayList<ListEntry>(list1Selected);
-		selectedUnion.addAll(list2Selected);
+		List<ListEntry> selectedIntersection = ListHandler.intersect(list1Selected, list2Selected);
+		List<ListEntry> selectedUnion = ListHandler.unite(list1Selected, list2Selected);
 		
 		//get both selections without the intersected ones
-		for (int i = 0; i < selectedUnion.size(); i++) {
-			for (ListEntry intersectedEntry : selectedIntersection) {
-				if (selectedUnion.get(i).getValue().equals(intersectedEntry.getValue())) {
-					selectedUnion.remove(selectedUnion.get(i));
-					break;
-				}
-			}
-		}
+		selectedUnion.removeAll(selectedIntersection);
 		
 		//shift all the valid ones
 		iteration:
@@ -497,7 +560,7 @@ public class MainState extends State implements PropertyChangeListener
 		
 		manageGrayedOutEntries();
 		refreshLists();
-		circuits.wake();
+		circuit.refresh();
 	}
 	
 	/**
@@ -537,29 +600,7 @@ public class MainState extends State implements PropertyChangeListener
 		
 		manageGrayedOutEntries();
 		refreshLists();
-		circuits.wake();
-	}
-	
-	/**
-	 * Create a list that only contains of the intersected values from two given lists.
-	 * 
-	 * @param list1 - The first list to intersect
-	 * @param list2 - The second list to intersect
-	 * @return A list that only contains values that appear in both lists.
-	 */
-	private List<ListEntry> intersectLists(List<ListEntry> list1, List<ListEntry> list2) {
-		List<ListEntry> intersection = new ArrayList<ListEntry>();
-		
-		for (ListEntry entry1 : list1) {
-			for (ListEntry entry2 : list2) {
-				if (entry1.getValue().equals(entry2.getValue())) {
-					intersection.add(entry1);
-					intersection.add(entry2);
-				}
-			}
-		}
-		
-		return intersection;
+		circuit.refresh();
 	}
 	
 	/**
@@ -567,7 +608,7 @@ public class MainState extends State implements PropertyChangeListener
 	 * If an entry is highlighted, but only appears in one list, remove the special icon. 
 	 */
 	private void suggestCandidatesEntries() {
-		List<ListEntry> intersection = intersectLists(file1List.getAll(), file2List.getAll());
+		List<ListEntry> intersection = ListHandler.intersect(file1List.getAll(), file2List.getAll());
 		List<ListEntry> union = new ArrayList<ListEntry>(file1List.getAll());
 		union.addAll(file2List.getAll());
 		union.removeAll(intersection);
@@ -705,6 +746,6 @@ public class MainState extends State implements PropertyChangeListener
 	
 	@Override
 	public void paintComponent(Graphics g, Dimension windowDim) {
-		circuits.paintCircuit(g);
+		circuit.paintCircuit(g);
 	}
 }

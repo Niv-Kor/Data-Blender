@@ -1,5 +1,5 @@
 package sa_atarim.dblender.output;
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,18 +11,16 @@ import java.util.Queue;
 import java.util.Stack;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFFont;
-import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.sheets.CellFormat;
 import sa_atarim.dblender.sheets.ConstantCell;
 import sa_atarim.dblender.sheets.ConstantCellSet;
 import sa_atarim.dblender.sheets.SheetModifier;
@@ -30,7 +28,7 @@ import sa_atarim.dblender.sheets.XLSFile;
 
 public class Blender
 {
-	private static final String NEW_SHEET_NAME = Constants.PROGRAM_NAME + " new sheet";
+	private static final String NEW_SHEET_NAME = Constants.PROGRAM_NAME + " sheet";
 	
 	/**
 	 * Blend multiple sheets into one new sheet.
@@ -42,7 +40,9 @@ public class Blender
 		if (request == null || !request.isValid()) return;
 		
 		List<FileSpecification> files = request.getFiles();
-		XLSFile blendedFile = createEmptyFile(request);
+		String tempFilePath = FileProcessor.createTempFile(NEW_SHEET_NAME);
+		File tempFile = new File(tempFilePath);
+		XLSFile blendedFile = new XLSFile(tempFilePath);
 		String keyColumnName = request.getKeyColumn();
 		duplicate(files.get(0), blendedFile);
 		
@@ -54,32 +54,18 @@ public class Blender
 		highlightCruicialCells(blendedFile, keyColumnName, IndexedColors.TEAL,
 							   IndexedColors.WHITE, IndexedColors.AQUA);
 		
-		blendedFile.write();
-		
 		//close all files
 		for (FileSpecification specification : files) specification.getFile().close();
+		
+		//write to desired path
+		File outputFile = new File(request.getFilePath());
+		blendedFile.write(outputFile);
+		
+		//delete temp file and close
 		blendedFile.close();
+		tempFile.delete();
 	}
 
-	/**
-	 * Create an empty file according to the given specification.
-	 * 
-	 * @param request - A specification of the file's properties
-	 * @return The newly created file.
-	 * @throws IOException When the new file cannot be created due to bad path.
-	 */
-	private XLSFile createEmptyFile(OutputRequest request) throws IOException {
-		Workbook workbook = new XSSFWorkbook();
-		workbook.createSheet(NEW_SHEET_NAME);
-		String filePath = request.getFilePath();
-		FileOutputStream fileOut = new FileOutputStream(filePath);
-		workbook.write(fileOut);
-		fileOut.close();
-		workbook.close();
-		
-		return new XLSFile(filePath);
-	}
-	
 	/**
 	 * Duplicate a sheet into a new clean sheet.
 	 * Only the specified columns of the origin sheet will be copied,
@@ -109,11 +95,12 @@ public class Blender
 			
 			//iterate over every row
 			for (int r = 0; r < rowCount; r++) {
-				XSSFRow originRow = originSourceSheet.getRow(r);
-				XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(column));
-				XSSFRow destRow = destSourceSheet.getRow(r);
-				XSSFCell destCell = destRow.createCell(colIndex);
-				copyCell(originCell, destCell);
+				Row originRow = originSourceSheet.getRow(r);
+				Cell originCell = originRow.getCell(originSheet.getColumnIndex(column));
+				Row destRow = destSourceSheet.getRow(r);
+				Cell destCell = destRow.createCell(colIndex);
+				
+				if (originCell != null) CellFormat.copyCell(originCell, destCell);
 			}
 			
 			colIndex++;
@@ -133,8 +120,8 @@ public class Blender
 	private void integrate(FileSpecification origin, XLSFile destination, String keyColumn, boolean intersect) {
 		SheetModifier originSheet = origin.getFile().getSheet();
 		SheetModifier destSheet = destination.getSheet();
-		XSSFSheet originSourceSheet = originSheet.getSource();
-		XSSFSheet destSourceSheet = destination.getSheet().getSource();
+		Sheet originSourceSheet = originSheet.getSource();
+		Sheet destSourceSheet = destination.getSheet().getSource();
 		List<String> destColumns = Arrays.asList(destSheet.getColumnNames());
 		int destNewColIndex = destSourceSheet.getRow(destSheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
 		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
@@ -145,7 +132,7 @@ public class Blender
 		ConstantCellSet originKeyVals = new ConstantCellSet();
 		
 		for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
-			XSSFCell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
+			Cell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
 			originKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
@@ -153,7 +140,7 @@ public class Blender
 		ConstantCellSet destKeyVals = new ConstantCellSet();
 		
 		for (int r = destSheet.getHeaderRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
-			XSSFCell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
+			Cell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
 			destKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
@@ -180,10 +167,10 @@ public class Blender
 			int destNewRowIndex = destSourceSheet.getPhysicalNumberOfRows();
 			
 			for (int r = destNewRowIndex; r < destNewRowIndex + exclusiveOriginKeyVals.size(); r++) {
-				XSSFRow destRow = destSourceSheet.createRow(r);
-				XSSFCell destCell = destRow.createCell(destKeyColIndex);
-				Object keyValue = (String) keysStack.pop().value;
-				destCell.setCellValue((String) keyValue);
+				Row destRow = destSourceSheet.createRow(r);
+				Cell destCell = destRow.createCell(destKeyColIndex);
+				Object keyValue = keysStack.pop().value;
+				destCell.setCellValue(String.valueOf(keyValue));
 				
 				//update new row indexes on the exclusive origin key values
 				ConstantCell exclusiveKeyTuple = exclusiveOriginKeyVals.getSimilarValue(keyValue);
@@ -203,11 +190,11 @@ public class Blender
 			int colIndex = destNewColIndex++;
 
 			//insert the column name to the destination
-			XSSFRow originRow = originSourceSheet.getRow(originSheet.getHeaderRowIndex());
-			XSSFCell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
-			XSSFRow destRow = destSourceSheet.getRow(destSheet.getHeaderRowIndex());
-			XSSFCell destCell = destRow.createCell(colIndex);
-			copyCell(originCell, destCell);
+			Row originRow = originSourceSheet.getRow(originSheet.getHeaderRowIndex());
+			Cell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
+			Row destRow = destSourceSheet.getRow(destSheet.getHeaderRowIndex());
+			Cell destCell = destRow.createCell(colIndex);
+			CellFormat.copyCell(originCell, destCell);
 			
 			//clone the original key values set for each column
 			ConstantCellSet keyValsClone = new ConstantCellSet(finalKeyVals);
@@ -222,7 +209,7 @@ public class Blender
 				String originKeyValue = originCell.getStringCellValue();
 				
 				for (ConstantCell key : keyValsClone) {
-					if (key.value.equals(originKeyValue)) {
+					if (key.toString().equals(originKeyValue)) {
 						matchingRow = key.index;
 						keyValsClone.remove(key);
 						
@@ -230,7 +217,7 @@ public class Blender
 						originCell = originRow.getCell(originSheet.getColumnIndex(colum));
 						destRow = destSourceSheet.getRow(matchingRow);
 						destCell = destRow.createCell(colIndex);
-						copyCell(originCell, destCell);
+						CellFormat.copyCell(originCell, destCell);
 						break;
 					}
 				}
@@ -248,8 +235,8 @@ public class Blender
 	 */
 	private void groupSimilarKeys(XLSFile file, String keyColumn) {
 		SheetModifier sheet = file.getSheet();
-		XSSFSheet source = sheet.getSource();
-		Map<String, List<String[]>> duplicatedRows = new HashMap<String, List<String[]>>();
+		Sheet source = sheet.getSource();
+		Map<String, List<ConstantCell[]>> duplicatedRows = new HashMap<String, List<ConstantCell[]>>();
 		int columnsAmount = source.getRow(sheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
 		
 		//find all duplicated rows in the sheet
@@ -259,17 +246,17 @@ public class Blender
 			
 			//create new entry for the first instance of the key
 			if (!duplicatedRows.containsKey(keyValue))
-				duplicatedRows.put(keyValue, new ArrayList<String[]>());
+				duplicatedRows.put(keyValue, new ArrayList<ConstantCell[]>());
 			
 			//seen at least two instances of the same key
 			else {
-				List<String[]> rowsList = duplicatedRows.get(keyValue);
-				String[] rowBuffer = new String[columnsAmount];
+				List<ConstantCell[]> rowsList = duplicatedRows.get(keyValue);
+				ConstantCell[] rowBuffer = new ConstantCell[columnsAmount];
 				rowsList.add(rowBuffer);
 				
 				//save the entire row in a buffer
 				for (int i = 0; i < rowBuffer.length; i++)
-					rowBuffer[i] = sheet.cellValueString(row, i);
+					rowBuffer[i] = new ConstantCell(i, row.getCell(i));
 				
 				//delete the saved row
 				sheet.deleteRow(r);
@@ -294,27 +281,10 @@ public class Blender
 			
 			//insert the row from the buffer
 			if (duplicatedRows.containsKey(keyValue)) {
-				for (String[] rowBuffer : duplicatedRows.get(keyValue))
+				for (ConstantCell[] rowBuffer : duplicatedRows.get(keyValue))
 					sheet.insertRowAfter(rowBuffer, r);
 				
 				duplicatedRows.remove(keyValue);
-			}
-		}
-	}
-	
-	/**
-	 * Copy a cell.
-	 * This method keeps the cell's original format.
-	 * 
-	 * @param origin - The origin cell to copy from
-	 * @param dest - The cell to copy the value into
-	 */
-	private void copyCell(XSSFCell origin, XSSFCell dest) {
-		if (origin != null && origin.getCellType() != CellType.BLANK) {
-			switch (origin.getCellType()) {
-				case NUMERIC: dest.setCellValue(origin.getNumericCellValue()); break;
-				case BOOLEAN: dest.setCellValue(origin.getBooleanCellValue()); break;
-				default: dest.setCellValue(origin.getStringCellValue());
 			}
 		}
 	}
@@ -332,8 +302,8 @@ public class Blender
 								 		IndexedColors headerFG, IndexedColors dataBG) {
 		
 		SheetModifier sheet = destination.getSheet();
-		XSSFSheet source = sheet.getSource();
-		XSSFWorkbook workbook = source.getWorkbook();
+		Sheet source = sheet.getSource();
+		Workbook workbook = source.getWorkbook();
 		int headerRowIndex = sheet.getHeaderRowIndex();
 		int columnIndex = sheet.getColumnIndex(headerName);
 		
@@ -344,7 +314,7 @@ public class Blender
 			CellStyle headerStyle = workbook.createCellStyle();
 			headerStyle.cloneStyleFrom(headerCell.getCellStyle());
 			 
-			XSSFFont headerFont = workbook.createFont();
+			Font headerFont = workbook.createFont();
 		    headerFont.setFontHeightInPoints((short) 11);
 		    headerFont.setFontName("Arial");
 		    headerFont.setColor(headerFG.getIndex());
@@ -380,14 +350,14 @@ public class Blender
 	 * @param intersectedKeys - A set of the intersected key values between all sheets
 	 */
 	private void deleteUnnecessaryRows(SheetModifier sheet, int keyColumnIndex, ConstantCellSet intersectedKeys) {
-		XSSFSheet sourceSheet = sheet.getSource();
+		Sheet sourceSheet = sheet.getSource();
 		
 		for (int i = sheet.getHeaderRowIndex() + 1; i < sourceSheet.getPhysicalNumberOfRows(); i++) {
-			XSSFRow row = sourceSheet.getRow(i);
+			Row row = sourceSheet.getRow(i);
 			
 			if (row != null) {
-				XSSFCell cell = row.getCell(keyColumnIndex);
-				Object cellValue = SheetModifier.getGenericCellValue(cell);
+				Cell cell = row.getCell(keyColumnIndex);
+				Object cellValue = CellFormat.getGenericValue(cell);
 				
 				//delete row
 				if (!intersectedKeys.containsValue(cellValue)) {

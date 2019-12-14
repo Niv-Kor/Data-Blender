@@ -19,7 +19,7 @@ public class ConstantCellSet extends HashSet<ConstantCell>
 	 */
 	public ConstantCell getSimilarValue(Object value) {
 		for (ConstantCell key : this)
-			if (key.value.equals((String) value)) return key;
+			if (key.value.equals(value)) return key;
 
 		return null;
 	}

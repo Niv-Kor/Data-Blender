@@ -7,7 +7,7 @@ import sa_atarim.dblender.Constants;
 public class MainWindow extends Window
 {
 	private static final long serialVersionUID = -7382314825689526910L;
-	private static final Dimension DIM = new Dimension(550, 750);
+	private static final Dimension DIM = new Dimension(550, 650);
 	
 	public MainWindow() {
 		super(Constants.PROGRAM_TITLE);

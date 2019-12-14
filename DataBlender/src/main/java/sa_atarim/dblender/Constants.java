@@ -15,6 +15,7 @@ public class Constants
 	public static final Color WINDOW_COLOR = new Color(239, 239, 239);
 	public static final String[] ALLOWED_FILE_TYPES = { "xls", "xlsx" };
 	public static final String SAVED_FILE_TYPE = "xlsx";
+	public static final String CURRENT_DIRECTORY = System.getProperty("user.dir") + "/";
 	public static final Color BOX_BACKGROUND = new Color(249, 249, 249);
 	
 	//format style
@@ -98,5 +99,7 @@ public class Constants
 		public static final ImageIcon GRAY_CANDIDATE_SQUARE = ImageHandler.loadIcon(FOLDER + "gray_candidate_square.png");
 		public static final ImageIcon UNCHECKED_BOX = ImageHandler.loadIcon(FOLDER + "unchecked_box.png");
 		public static final ImageIcon CHECKED_BOX = ImageHandler.loadIcon(FOLDER + "checked_box.png");
+		public static final ImageIcon SELECT_ALL = ImageHandler.loadIcon(FOLDER + "selectall.png");
+		public static final ImageIcon HOVER_SELECT_ALL = ImageHandler.loadIcon(FOLDER + "hover_selectall.png");
 	}
 }

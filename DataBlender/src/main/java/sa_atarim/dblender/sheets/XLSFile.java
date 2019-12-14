@@ -34,6 +34,17 @@ public class XLSFile extends FileLoader
 	 * in order to physically write them to the file.
 	 */
 	public void write() {
+		write(file);
+	}
+	
+	/**
+	 * Write to the workbook.
+	 * This method needs to be called after all changes to the workbook are done,
+	 * in order to physically write them to the file.\
+	 * 
+	 * @param file - The file to write into
+	 */
+	public void write(File file) {
 		if (!isOpen()) {
 			System.err.println("Cannot write to the file  '" + fileName + "' because it is not properly loaded.");
 			return;
