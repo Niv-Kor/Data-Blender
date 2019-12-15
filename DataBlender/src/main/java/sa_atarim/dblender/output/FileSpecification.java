@@ -1,29 +1,64 @@
 package sa_atarim.dblender.output;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import sa_atarim.dblender.sheets.SheetModifier;
 import sa_atarim.dblender.sheets.XLSFile;
 
 public class FileSpecification
 {
 	private XLSFile file;
-	private List<String> columns;
+	private Map<String, Integer> columns;
+	private boolean isKeyUnique;
 	
 	/**
 	 * @param file - The origin file
 	 */
 	public FileSpecification(XLSFile file) {
 		this.file = file;
-		this.columns = new ArrayList<String>();
+		this.columns = new HashMap<String, Integer>();
+		this.isKeyUnique = false;
 	}
 	
 	/**
 	 * Add a column to the specification.
 	 * Only column's that are added can be integrated into an output file.
 	 * 
+	 * @param col - The column's name
+	 * @param index - The index of the column 
+	 */
+	public void addColumn(String col, int index) {
+		columns.put(col, index);
+	}
+	
+	/**
+	 * Add a key column to the specification.
+	 * 
 	 * @param col - The column's name 
 	 */
-	public void addColumn(String col) {
-		if (!columns.contains(col)) columns.add(col);
+	public void addKeyColumn(String col) {
+		columns.put(col, 0);
+		isKeyUnique = isUnique(col);
+	}
+	
+	/**
+	 * Check if every value in a column is unique.
+	 * 
+	 * @param col - The column's name
+	 * @return True if every value in the column in unique.
+	 */
+	private boolean isUnique(String col) {
+		SheetModifier sheet = file.getSheet();
+		String[] columnContent = sheet.getEntireColumn(col);
+		Set<String> values = new HashSet<String>();
+		
+		for (String value : columnContent) {
+			if (!values.contains(value)) values.add(value);
+			else return false;
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -34,26 +69,14 @@ public class FileSpecification
 	public void removeColumn(String col) { columns.remove(col); }
 	
 	/**
-	 * Sort the columns so the key column is first.
-	 * 
-	 * @param key - The name of the key column
-	 */
-	public void sortKeyFirst(String key) {
-		if (!columns.contains(key)) return;
-		
-		List<String> sortedList = new ArrayList<String>();
-		sortedList.add(key);
-		
-		for (String col : columns)
-			if (!col.equals(key)) sortedList.add(col);
-		
-		columns = sortedList;
-	}
-	
-	/**
 	 * @return A list of the added columns.
 	 */
-	public List<String> getColumns() { return columns; }
+	public Map<String, Integer> getColumns() { return columns; }
+	
+	/**
+	 * @return True if every value in the key column is unique.
+	 */
+	public boolean isKeyUnique() { return isKeyUnique; }
 	
 	/**
 	 * @return The origin file.

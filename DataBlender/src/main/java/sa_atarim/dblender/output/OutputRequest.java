@@ -72,14 +72,6 @@ public class OutputRequest
 	 */
 	public void setKeyColumn(String col) {
 		keyColumn = col;
-		
-		//add key column to all files
-		if (col != null) {
-			for (FileSpecification file : files) {
-				file.addColumn(col);
-				file.sortKeyFirst(col);
-			}
-		}
 	}
 	
 	/**

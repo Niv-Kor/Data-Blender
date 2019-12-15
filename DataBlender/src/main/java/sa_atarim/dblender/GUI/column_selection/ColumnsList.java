@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.event.FocusListener;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
@@ -76,10 +77,10 @@ public class ColumnsList extends JScrollPane
 			arr[i] = listModel.get(i);
 			
 		Arrays.sort(arr);
-		removeAllEntries();
 		
-		for (int i = 0; i < arr.length; i++)
-			addEntry(arr[i]);
+		//re-add all entries to the list
+		removeAllEntries();
+		for (int i = 0; i < arr.length; i++) addEntry(arr[i]);
 	}
 	
 	/**
@@ -164,6 +165,19 @@ public class ColumnsList extends JScrollPane
 	}
 	
 	/**
+	 * Get the index of an entry.
+	 * 
+	 * @param entry - The entry to look for in the list
+	 * @return The index of the entry.
+	 */
+	public int findIndex(ListEntry entry) {
+		for (int i = 0; i < listModel.getSize(); i++)
+			if (listModel.get(i).equals(entry)) return i;
+		
+		return -1;
+	}
+	
+	/**
 	 * @return True if the list is empty.
 	 */
 	public boolean isEmpty() { return listModel.getSize() == 0; }
@@ -178,6 +192,90 @@ public class ColumnsList extends JScrollPane
 			entries.add(listModel.get(i));
 		
 		return entries;
+	}
+	
+	/**
+	 * Shift the selected entries 1 place upwards.
+	 */
+	public void shiftUpSelected() {
+		int[] selectedIndices = list.getSelectedIndices();
+		
+		for (int i = 0; i < selectedIndices.length; i++) {
+			int index = selectedIndices[i];
+			int topIndex = index - 1;
+			
+			if (!list.isSelectedIndex(topIndex) && swap(index, topIndex))
+				selectedIndices[i] = topIndex;
+		}
+		
+		list.setSelectedIndices(selectedIndices);
+	}
+	
+	/**
+	 * Shift the selected entries 1 place downwards.
+	 */
+	public void shiftDownSelected() {
+		int[] selectedIndices = list.getSelectedIndices();
+		
+		for (int i = selectedIndices.length - 1; i >= 0; i--) {
+			int index = selectedIndices[i];
+			int bottomIndex = index + 1;
+			
+			if (!list.isSelectedIndex(bottomIndex) && swap(index, bottomIndex))
+				selectedIndices[i] = bottomIndex;
+		}
+		
+		list.setSelectedIndices(selectedIndices);
+	}
+	
+	/**
+	 * @return The indices of the selected entries.
+	 */
+	public int[] getSelectedIndices() { return list.getSelectedIndices(); }
+	
+	/**
+	 * Mark entries as selected.
+	 * 
+	 * @param indices - The indices of the entries to select
+	 */
+	public void setSelectedIndices(int[] indices) { list.setSelectedIndices(indices); }
+	
+	/**
+	 * Switch the places of 2 entries in the list.
+	 * 
+	 * @param value - The value of the first entry
+	 * @param index - The index of the second entry
+	 * @return True if the two entries had been successfully swapped.
+	 */
+	public boolean swap(String value, int index) {
+		ListEntry entry = getEntry(value);
+		int valIndex = findIndex(entry);
+		
+		return swap(valIndex, index);
+	}
+	
+	/**
+	 * Switch the places of 2 entries in the list.
+	 * 
+	 * @param indexA - The index of the first entry
+	 * @param indexB - The index of the second entry
+	 * @return True if the two entries had been successfully swapped.
+	 */
+	public boolean swap(int indexA, int indexB) {
+		int amount = getEntriesAmount();
+		
+		if (indexA < 0 || indexA > amount - 1) return false;
+		else if (indexB < 0 || indexB > amount - 1) return false;
+		else if (indexA == indexB) return false;
+		
+		List<ListEntry> entriesList = getAll();
+		Collections.swap(entriesList, indexA, indexB);
+		
+		//re-add all entries to the list
+		removeAllEntries();
+		for (int i = 0; i < entriesList.size(); i++) addEntry(entriesList.get(i));
+		
+		return true;
 	}
 	
 	@Override

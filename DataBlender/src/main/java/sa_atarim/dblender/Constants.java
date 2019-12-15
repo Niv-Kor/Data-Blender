@@ -101,5 +101,9 @@ public class Constants
 		public static final ImageIcon CHECKED_BOX = ImageHandler.loadIcon(FOLDER + "checked_box.png");
 		public static final ImageIcon SELECT_ALL = ImageHandler.loadIcon(FOLDER + "selectall.png");
 		public static final ImageIcon HOVER_SELECT_ALL = ImageHandler.loadIcon(FOLDER + "hover_selectall.png");
+		public static final ImageIcon SORT_UP = ImageHandler.loadIcon(FOLDER + "sort_up.png");
+		public static final ImageIcon HOVER_SORT_UP = ImageHandler.loadIcon(FOLDER + "hover_sort_up.png");
+		public static final ImageIcon SORT_DOWN = ImageHandler.loadIcon(FOLDER + "sort_down.png");
+		public static final ImageIcon HOVER_SORT_DOWN = ImageHandler.loadIcon(FOLDER + "hover_sort_down.png");
 	}
 }

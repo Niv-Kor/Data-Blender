@@ -2,7 +2,6 @@ package sa_atarim.dblender.output;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +19,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheetViews;
 import sa_atarim.dblender.Constants;
+import sa_atarim.dblender.error.PopupError;
 import sa_atarim.dblender.sheets.CellFormat;
 import sa_atarim.dblender.sheets.ConstantCell;
 import sa_atarim.dblender.sheets.ConstantCellSet;
@@ -44,10 +44,36 @@ public class Blender
 		File tempFile = new File(tempFilePath);
 		XLSFile blendedFile = new XLSFile(tempFilePath);
 		String keyColumnName = request.getKeyColumn();
-		duplicate(files.get(0), blendedFile);
 		
-		for (int i = 1; i < files.size(); i++)
+		//duplicate the file where the key columns are unique
+		int duplicatedIndex = -1;
+		
+		for (int i = 0; i < files.size(); i++) {
+			FileSpecification file = files.get(i);
+			
+			//duplicate the found file
+			if (file.isKeyUnique()) {
+				duplicatedIndex = i;
+				duplicate(file, blendedFile);
+				break;
+			}
+		}
+		
+		/*
+		 * No file has a unique key column.
+		 * This is also checked during the processBlend() method in MainState,
+		 * but checked here again for better defense against later modifications to the code. 
+		 */
+		if (duplicatedIndex == -1) {
+			PopupError.KEY_NOT_UNIQUE.pop();
+			return;
+		}
+		
+		//integrate the other files
+		for (int i = 0; i < files.size(); i++) {
+			if (i == duplicatedIndex) continue;
 			integrate(files.get(i), blendedFile, keyColumnName, request.usesIntersection());
+		}
 		
 		groupSimilarKeys(blendedFile, keyColumnName);
 		blendedFile.getSheet().alignCells(Constants.HEADERS_ALIGNMENT, Constants.DATA_ALIGNMENT);
@@ -78,8 +104,8 @@ public class Blender
 		SheetModifier originSheet = origin.getFile().getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
+		Map<String, Integer> originColumns = origin.getColumns();
 		int rowCount = originSourceSheet.getPhysicalNumberOfRows();
-		int colIndex = 0;
 		
 		//create the rows in destination
 		for (int r = 0; r < rowCount; r++) destSourceSheet.createRow(r);
@@ -91,19 +117,16 @@ public class Blender
 		destSheetView.getSheetViewArray(0).setRightToLeft(rightToLeft);
 		
 		//iterate over every column
-		for (String column : origin.getColumns()) {
-			
+		for (String column : originColumns.keySet()) {
 			//iterate over every row
 			for (int r = 0; r < rowCount; r++) {
 				Row originRow = originSourceSheet.getRow(r);
 				Cell originCell = originRow.getCell(originSheet.getColumnIndex(column));
 				Row destRow = destSourceSheet.getRow(r);
-				Cell destCell = destRow.createCell(colIndex);
+				Cell destCell = destRow.createCell(originColumns.get(column));
 				
 				if (originCell != null) CellFormat.copyCell(originCell, destCell);
 			}
-			
-			colIndex++;
 		}
 	}
 	
@@ -122,17 +145,15 @@ public class Blender
 		SheetModifier destSheet = destination.getSheet();
 		Sheet originSourceSheet = originSheet.getSource();
 		Sheet destSourceSheet = destination.getSheet().getSource();
-		List<String> destColumns = Arrays.asList(destSheet.getColumnNames());
-		int destNewColIndex = destSourceSheet.getRow(destSheet.getHeaderRowIndex()).getPhysicalNumberOfCells();
-		int destKeyColIndex = destSheet.getColumnIndex(keyColumn);
-		int originKeyColIndex = originSheet.getColumnIndex(keyColumn);
+		Map<String, Integer> originColumns = origin.getColumns();
+		int originKeyCol = originSheet.getColumnIndex(keyColumn);
 		ConstantCellSet finalKeyVals;
 		
 		//retrieve the origin key values as a set
 		ConstantCellSet originKeyVals = new ConstantCellSet();
 		
 		for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
-			Cell keyCell = originSourceSheet.getRow(r).getCell(originKeyColIndex);
+			Cell keyCell = originSourceSheet.getRow(r).getCell(originKeyCol);
 			originKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
@@ -140,14 +161,12 @@ public class Blender
 		ConstantCellSet destKeyVals = new ConstantCellSet();
 		
 		for (int r = destSheet.getHeaderRowIndex() + 1; r < destSourceSheet.getPhysicalNumberOfRows(); r++) {
-			Cell keyCell = destSourceSheet.getRow(r).getCell(destKeyColIndex);
+			Cell keyCell = destSourceSheet.getRow(r).getCell(0);
 			destKeyVals.add(new ConstantCell(r, keyCell));
 		}
 		
-		if (intersect) {
-			//create an intersection of the two sets
-			finalKeyVals = destKeyVals.intersect(originKeyVals);
-		}
+		//create an intersection of the two sets
+		if (intersect) finalKeyVals = destKeyVals.intersect(originKeyVals);
 		else {
 			//create a set that's exclusive for the origin key values
 			ConstantCellSet exclusiveOriginKeyVals = new ConstantCellSet(originKeyVals);
@@ -168,13 +187,13 @@ public class Blender
 			
 			for (int r = destNewRowIndex; r < destNewRowIndex + exclusiveOriginKeyVals.size(); r++) {
 				Row destRow = destSourceSheet.createRow(r);
-				Cell destCell = destRow.createCell(destKeyColIndex);
+				Cell destCell = destRow.createCell(0);
 				Object keyValue = keysStack.pop().value;
-				destCell.setCellValue(String.valueOf(keyValue));
+				CellFormat.setGenericValue(destCell, keyValue);
 				
-				//update new row indexes on the exclusive origin key values
-				ConstantCell exclusiveKeyTuple = exclusiveOriginKeyVals.getSimilarValue(keyValue);
-				exclusiveKeyTuple.index = r;
+				//update new row indices on the exclusive origin key values
+				ConstantCell exclusiveKey = exclusiveOriginKeyVals.getSimilarValue(keyValue);
+				exclusiveKey.index = r;
 			}
 			
 			//use the union of both files' key values
@@ -183,17 +202,15 @@ public class Blender
 		}
 		
 		//iterate over every origin sheet column
-		for (String colum : origin.getColumns()) {
-			if (destColumns.contains(colum)) continue;
-			
-			//get the next free column
-			int colIndex = destNewColIndex++;
+		for (String column : originColumns.keySet()) {
+			int originColIndex = originSheet.getColumnIndex(column);
+			int destColIndex = originColumns.get(column);
 
 			//insert the column name to the destination
 			Row originRow = originSourceSheet.getRow(originSheet.getHeaderRowIndex());
-			Cell originCell = originRow.getCell(originSheet.getColumnIndex(colum));
+			Cell originCell = originRow.getCell(originColIndex);
 			Row destRow = destSourceSheet.getRow(destSheet.getHeaderRowIndex());
-			Cell destCell = destRow.createCell(colIndex);
+			Cell destCell = destRow.createCell(destColIndex);
 			CellFormat.copyCell(originCell, destCell);
 			
 			//clone the original key values set for each column
@@ -201,22 +218,26 @@ public class Blender
 			
 			//iterate over every row of the origin and match it with the destination
 			for (int r = originSheet.getHeaderRowIndex() + 1; r < originSourceSheet.getPhysicalNumberOfRows(); r++) {
-				int matchingRow = -1;
 				originRow = originSourceSheet.getRow(r);
-				originCell = originRow.getCell(originKeyColIndex);
+				originCell = originRow.getCell(originKeyCol);
 				
 				//find the matching row in the destination
-				String originKeyValue = originCell.getStringCellValue();
+				Object originKeyValue = CellFormat.getGenericValue(originCell);
+				
+				if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
+					System.out.println("for origin key value " + originKeyValue);
 				
 				for (ConstantCell key : keyValsClone) {
-					if (key.toString().equals(originKeyValue)) {
-						matchingRow = key.index;
+					if (key.value.equals(originKeyValue)) {
+						int matchingRow = key.index;
+						if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
+						System.out.println("for value: " + CellFormat.getGenericValue(originRow.getCell(originColIndex)) + " found matching row " + matchingRow);
 						keyValsClone.remove(key);
 						
 						//insert the data to the destination
-						originCell = originRow.getCell(originSheet.getColumnIndex(colum));
+						originCell = originRow.getCell(originColIndex);
 						destRow = destSourceSheet.getRow(matchingRow);
-						destCell = destRow.createCell(colIndex);
+						destCell = destRow.createCell(destColIndex);
 						CellFormat.copyCell(originCell, destCell);
 						break;
 					}
@@ -224,7 +245,7 @@ public class Blender
 			}
 		}
 		
-		if (intersect) deleteUnnecessaryRows(destSheet, destKeyColIndex, finalKeyVals);
+		if (intersect) deleteUnnecessaryRows(destSheet, 0, finalKeyVals);
 	}
 	
 	/**

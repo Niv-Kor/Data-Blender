@@ -1,5 +1,6 @@
 package sa_atarim.dblender.GUI;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -10,15 +11,16 @@ import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javaNK.util.GUI.swing.components.InteractiveClick;
 import javaNK.util.GUI.swing.components.InteractiveIcon;
 import javaNK.util.GUI.swing.containers.Window;
 import javaNK.util.GUI.swing.state_management.State;
@@ -97,11 +99,10 @@ public class MainState extends State implements PropertyChangeListener
 		//blender icon
 		InteractiveIcon blenderIcon = new InteractiveIcon(Constants.Icons.BLENDER);
 		blenderIcon.setHoverIcon(Constants.Icons.HOVER_BLENDER);
-		blenderIcon.setFunction(new Callable<Void>() {
+		blenderIcon.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				processBlend();
-				return null;
 			}
 		});
 		
@@ -129,11 +130,10 @@ public class MainState extends State implements PropertyChangeListener
 		//file 1 clear button
 		InteractiveIcon clearFile1 = new InteractiveIcon(Constants.Icons.CLEAR_X);
 		clearFile1.setHoverIcon(Constants.Icons.HOVER_CLEAR_X);
-		clearFile1.setFunction(new Callable<Void>() {
+		clearFile1.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				clearFile(FileIndex.FILE_1);
-				return null;
 			}
 		});
 		
@@ -158,11 +158,10 @@ public class MainState extends State implements PropertyChangeListener
 		//file 1 clear button
 		InteractiveIcon clearFile2 = new InteractiveIcon(Constants.Icons.CLEAR_X);
 		clearFile2.setHoverIcon(Constants.Icons.HOVER_CLEAR_X);
-		clearFile2.setFunction(new Callable<Void>() {
+		clearFile2.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				clearFile(FileIndex.FILE_2);
-				return null;
 			}
 		});
 		
@@ -193,15 +192,15 @@ public class MainState extends State implements PropertyChangeListener
 		//file 1 select all
 		InteractiveIcon selectAll1 = new InteractiveIcon(Constants.Icons.SELECT_ALL);
 		selectAll1.setHoverIcon(Constants.Icons.HOVER_SELECT_ALL);
-		selectAll1.setFunction(new Callable<Void>() {
+		selectAll1.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				boolean allSelected = file1List.getSelectedEntriesAmount() == file1List.getEntriesAmount();
 				
 				if (allSelected) file1List.clearSelection();
 				else file1List.selectAll();
-					
-				return null;
+				
+				file1List.requestFocus();
 			}
 		});
 		
@@ -224,15 +223,15 @@ public class MainState extends State implements PropertyChangeListener
 		//file 1 select all
 		InteractiveIcon selectAll2 = new InteractiveIcon(Constants.Icons.SELECT_ALL);
 		selectAll2.setHoverIcon(Constants.Icons.HOVER_SELECT_ALL);
-		selectAll2.setFunction(new Callable<Void>() {
+		selectAll2.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				boolean allSelected = file2List.getSelectedEntriesAmount() == file2List.getEntriesAmount();
 				
 				if (allSelected) file2List.clearSelection();
 				else file2List.selectAll();
-					
-				return null;
+				
+				file2List.requestFocus();
 			}
 		});
 		
@@ -245,25 +244,110 @@ public class MainState extends State implements PropertyChangeListener
 		//shift button
 		this.shiftFwdButton = new InteractiveIcon(Constants.Icons.SHIFT_FWD);
 		shiftFwdButton.setHoverIcon(Constants.Icons.HOVER_SHIFT_FWD);
-		shiftFwdButton.setFunction(new Callable<Void>() {
+		shiftFwdButton.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				shiftEntriesForward();
-				return null;
 			}
 		});
 		
 		this.shiftBckButton = new InteractiveIcon(Constants.Icons.SHIFT_BCK);
 		shiftBckButton.setHoverIcon(Constants.Icons.HOVER_SHIFT_BCK);
-		shiftBckButton.setFunction(new Callable<Void>() {
+		shiftBckButton.setFunction(new InteractiveClick() {
 			@Override
-			public Void call() throws Exception {
+			public void onClick(MouseEvent e) throws Exception {
 				shiftEntriesBack();
-				return null;
 			}
 		});
 		
 		changeShiftArrow(shiftFwdButton);
+		
+		//sort up button (in combined list)
+		InteractiveIcon sortUp = new InteractiveIcon(Constants.Icons.SORT_UP);
+		sortUp.setHoverIcon(Constants.Icons.HOVER_SORT_UP);
+		sortUp.setFunction(new InteractiveClick() {
+			@Override
+			public void onClick(MouseEvent e) throws Exception {
+				int[] selectedIndices = combinedList.getSelectedIndices();
+				int indicesAmount = selectedIndices.length;
+				
+				//apply the selection of the key column
+				if (indicesAmount >= 0 && selectedIndices[0] != 0) {
+					int[] newSelectedIndices = new int[indicesAmount + 1];
+					newSelectedIndices[0] = 0;
+					
+					for (int i = 0; i < indicesAmount; i++)
+						newSelectedIndices[i + 1] = selectedIndices[i];
+					
+					selectedIndices = newSelectedIndices;
+				}
+				
+				combinedList.setSelectedIndices(selectedIndices);
+				combinedList.shiftUpSelected();
+				
+				//restore the selected indices
+				selectedIndices = combinedList.getSelectedIndices();
+				
+				//cancel the selection of the key column
+				if (indicesAmount > 0 && selectedIndices[0] == 0) {
+					int[] newSelectedIndices = new int[indicesAmount];
+					
+					for (int i = 0; i < indicesAmount; i++)
+						newSelectedIndices[i] = selectedIndices[i + 1];
+					
+					combinedList.setSelectedIndices(newSelectedIndices);
+				}
+			}
+		});
+		
+		gbc.insets.top = 0;
+		gbc.insets.right = 0;
+		gbc.insets.left = -140;
+		gbc.insets.bottom = -257;
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		panes[0].add(sortUp, gbc);
+		
+		//sort down button (in combined list)
+		InteractiveIcon sortDown = new InteractiveIcon(Constants.Icons.SORT_DOWN);
+		sortDown.setHoverIcon(Constants.Icons.HOVER_SORT_DOWN);
+		sortDown.setFunction(new InteractiveClick() {
+			@Override
+			public void onClick(MouseEvent e) throws Exception {
+				//check if the key column is selected
+				int[] selectedIndices = combinedList.getSelectedIndices();
+				int indicesAmount = selectedIndices.length;
+				
+				//cancel the selection of the key column
+				if (indicesAmount > 0 && selectedIndices[0] == 0) {
+					int[] newSelectedIndices = new int[indicesAmount - 1];
+					
+					for (int i = 0; i < newSelectedIndices.length; i++)
+						newSelectedIndices[i] = selectedIndices[i + 1];
+					
+					selectedIndices = newSelectedIndices;
+				}
+				
+				combinedList.setSelectedIndices(selectedIndices);
+				combinedList.shiftDownSelected();
+			}
+		});
+		
+		gbc.insets.left = -100;
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		panes[0].add(sortDown, gbc);
+		
+		//combined list label
+		JLabel combinedListLabel = new JLabel("New File Columns");
+		combinedListLabel.setForeground(new Color(89, 157, 182));
+		combinedListLabel.setFont(Constants.Fonts.MAIN.deriveFont(13f));
+		
+		gbc.insets.left = 0;
+		gbc.insets.right = -50;
+		gbc.gridx = 0;
+		gbc.gridy = 2;
+		panes[0].add(combinedListLabel, gbc);
 		
 		//combined list
 		Dimension combinedListDim = DimensionalHandler.adjust(panes[1].getPreferredSize(), 82.8, 75);
@@ -287,6 +371,7 @@ public class MainState extends State implements PropertyChangeListener
 		
 		gbc.insets.right = 0;
 		gbc.insets.top = -40;
+		gbc.insets.bottom = 0;
 		gbc.gridx = 0;
 		gbc.gridy = 0;
 		panes[1].add(combinedList, gbc);
@@ -320,6 +405,7 @@ public class MainState extends State implements PropertyChangeListener
 		
 		gbc.insets.top = 10;
 		gbc.insets.left = -12;
+		gbc.insets.bottom = 0;
 		gbc.gridx = 0;
 		gbc.gridy = 1;
 		panes[1].add(intersectBox, gbc);
@@ -345,8 +431,7 @@ public class MainState extends State implements PropertyChangeListener
 		keyColumnDropdown.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-				String item = (String) keyColumnDropdown.getSelectedItem();
-				outputRequest.setKeyColumn(item);
+				processKeyChange();
 			}
 		});
 		
@@ -394,6 +479,17 @@ public class MainState extends State implements PropertyChangeListener
 	}
 	
 	/**
+	 * Change the key column in the request object according to the dropdown's selection.
+	 */
+	private void processKeyChange() {
+		String item = (String) keyColumnDropdown.getSelectedItem();
+		outputRequest.setKeyColumn(item);
+		
+		//set as first in the combined list
+		combinedList.swap(item, 0);
+	}
+	
+	/**
 	 * Process the new file according to the user inputs.
 	 * This method checks if all inputs are valid, and throws a pop-up error in case they're not.
 	 */
@@ -414,8 +510,38 @@ public class MainState extends State implements PropertyChangeListener
 				PopupError.KEY_INCOMPATIBLE.pop();
 				return;
 			}
-			
+			//prepare to blend
 			else {
+				//enter columns to file specifications
+				List<ListEntry> columns = combinedList.getAll();
+				file1Specification.getColumns().clear();
+				file2Specification.getColumns().clear();
+				
+				for (int i = 0; i < columns.size(); i++) {
+					ListEntry entry = columns.get(i);
+					String name = entry.getValue();
+					Integer index = combinedList.findIndex(entry);
+					
+					if (i == 0) {
+						file1Specification.addKeyColumn(name);
+						file2Specification.addKeyColumn(name);
+						
+						if (!file1Specification.isKeyUnique() && !file2Specification.isKeyUnique()) {
+							PopupError.KEY_NOT_UNIQUE.pop();
+							return;
+						}
+					}
+					
+					switch (entry.getEntryIcon()) {
+						case GREEN:
+						case GREEN_CANDIDATE: file1Specification.addColumn(name, index); break;
+						case BLUE:
+						case BLUE_CANDIDATE: file2Specification.addColumn(name, index); break;
+							
+						default: break;
+					}
+				}
+				
 				String filePath = FileProcessor.getDesiredDirectory();
 				String directory = DirectoryTrimmer.extractDirectory(filePath);
 				String fileName = DirectoryTrimmer.extractFileName(filePath);
@@ -510,7 +636,7 @@ public class MainState extends State implements PropertyChangeListener
 			list.addEntry(new ListEntry(fileIndex.icon, col));
 		
 		//find the key column candidates and highlight them
-		suggestCandidatesEntries();
+		suggestCandidateEntries();
 		refreshLists();
 		circuit.refresh();
 	}
@@ -533,24 +659,15 @@ public class MainState extends State implements PropertyChangeListener
 		iteration:
 		for (ListEntry entry : selectedUnion) {
 			if (!entry.isGrayed() && !combinedList.containsEntry(entry)) {
-				FileSpecification fileSpecification;
-				
 				switch (entry.getEntryIcon()) {
 					case GREEN:
-					case GREEN_CANDIDATE:
-						file1List.removeEntry(entry);
-						fileSpecification = file1Specification;
-						break;
+					case GREEN_CANDIDATE: file1List.removeEntry(entry); break;
 					case BLUE:
-					case BLUE_CANDIDATE:
-						file2List.removeEntry(entry);
-						fileSpecification = file2Specification;
-						break;
+					case BLUE_CANDIDATE: file2List.removeEntry(entry); break;
 					default: continue iteration;
 				}
 				
 				//add to the list and to the specification
-				fileSpecification.addColumn(entry.getValue());
 				combinedList.addEntry(entry);
 				
 				//add candidate to the key columns dropdown
@@ -558,6 +675,7 @@ public class MainState extends State implements PropertyChangeListener
 			}
 		}
 		
+		processKeyChange();
 		manageGrayedOutEntries();
 		refreshLists();
 		circuit.refresh();
@@ -572,19 +690,11 @@ public class MainState extends State implements PropertyChangeListener
 		
 		interation:
 		for (ListEntry entry : combinedSelected) {
-			FileSpecification fileSpecification;
-			
 			switch (entry.getEntryIcon()) {
 				case GREEN:
-				case GREEN_CANDIDATE:
-					file1List.addEntry(entry);
-					fileSpecification = file1Specification;
-					break;
+				case GREEN_CANDIDATE: file1List.addEntry(entry); break;
 				case BLUE:
-				case BLUE_CANDIDATE:
-					file2List.addEntry(entry);
-					fileSpecification = file2Specification;
-					break;
+				case BLUE_CANDIDATE: file2List.addEntry(entry); break;
 				default: continue interation;
 			}
 			
@@ -594,7 +704,6 @@ public class MainState extends State implements PropertyChangeListener
 			}
 			
 			//remove from the list
-			fileSpecification.removeColumn(entry.getValue());
 			combinedList.removeEntry(entry);
 		}
 		
@@ -607,7 +716,7 @@ public class MainState extends State implements PropertyChangeListener
 	 * For each list, find the entries that appear in both of them and highlight them with a special icon.
 	 * If an entry is highlighted, but only appears in one list, remove the special icon. 
 	 */
-	private void suggestCandidatesEntries() {
+	private void suggestCandidateEntries() {
 		List<ListEntry> intersection = ListHandler.intersect(file1List.getAll(), file2List.getAll());
 		List<ListEntry> union = new ArrayList<ListEntry>(file1List.getAll());
 		union.addAll(file2List.getAll());
@@ -701,7 +810,7 @@ public class MainState extends State implements PropertyChangeListener
 			case FILE_2: file2List.removeAllEntries(); break;
 		}
 		
-		suggestCandidatesEntries();
+		suggestCandidateEntries();
 		manageGrayedOutEntries();
 		refreshLists();
 	}
@@ -710,20 +819,21 @@ public class MainState extends State implements PropertyChangeListener
 	 * Refresh all lists.
 	 */
 	private void refreshLists() {
-		refreshList(file1List);
-		refreshList(file2List);
-		refreshList(combinedList);
+		refreshList(file1List, true);
+		refreshList(file2List, true);
+		refreshList(combinedList, false);
 	}
 	
 	/**
 	 * Refresh one list's view.
 	 * 
 	 * @param list - The list to refresh
+	 * @param sort - True to sort the list
 	 */
-	private void refreshList(ColumnsList list) {
+	private void refreshList(ColumnsList list, boolean sort) {
 		list.revalidate();
 		list.repaint();
-		list.sort();
+		if (sort) list.sort();
 	}
 	
 	@Override
