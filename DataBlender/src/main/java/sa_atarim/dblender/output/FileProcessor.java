@@ -34,30 +34,19 @@ public class FileProcessor
 	 * @throws IOException When the new file cannot be created due to bad path.
 	 */
 	public static String createTempFile(String sheetName) throws IOException {
+		//create a temp file
+		File tempFile = File.createTempFile(Constants.PROGRAM_NAME, "temp");
+		String filePath = tempFile.getAbsolutePath();
+		tempFile.deleteOnExit();
+		
+		//write to the temp file
 		Workbook workbook = new XSSFWorkbook();
 		workbook.createSheet(sheetName);
-		String currentDir = Constants.CURRENT_DIRECTORY;
-		String fileType = Constants.SAVED_FILE_TYPE;
-		String fileName = generateTempName(currentDir, Constants.PROGRAM_NAME + " temp", fileType);
-		String filePath = currentDir + fileName;
 		FileOutputStream fileOut = new FileOutputStream(filePath);
 		workbook.write(fileOut);
 		workbook.close();
 		fileOut.close();
 		
 		return filePath;
-	}
-	
-	private static String generateTempName(String directory, String prefix, String postfix) {
-		int i = 0;
-		
-		while (true) {
-			String filePath = directory + prefix + " (" + i + ")." + postfix;
-			File file = new File(filePath);
-			if (!file.exists()) break;
-			else i++;
-		}
-		
-		return prefix + " (" + i + ")." + postfix;
 	}
 }

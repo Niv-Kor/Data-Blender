@@ -69,9 +69,7 @@ public class XLSFile extends FileLoader
 	 * Close the file.
 	 */
 	public void close() {
-		try {
-			workbook.close();
-		}
+		try { workbook.close(); }
 		catch (IOException e) {
 			System.err.println("Could not close the file '" + fileName + "'.");
 			e.printStackTrace();

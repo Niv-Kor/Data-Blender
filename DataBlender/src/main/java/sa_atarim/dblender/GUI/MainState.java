@@ -504,12 +504,12 @@ public class MainState extends State implements PropertyChangeListener
 				PopupError.NO_KEY.pop();
 				return;
 			}
-			else if (!droppedFile1.getSheet().isColumnFull(outputRequest.getKeyColumn()) ||
-					 !droppedFile2.getSheet().isColumnFull(outputRequest.getKeyColumn())) {
-				
-				PopupError.KEY_INCOMPATIBLE.pop();
-				return;
-			}
+//			else if (!droppedFile1.getSheet().isColumnFull(outputRequest.getKeyColumn()) ||
+//					 !droppedFile2.getSheet().isColumnFull(outputRequest.getKeyColumn())) {
+//				
+//				PopupError.KEY_INCOMPATIBLE.pop();
+//				return;
+//			}
 			//prepare to blend
 			else {
 				//enter columns to file specifications
@@ -570,11 +570,24 @@ public class MainState extends State implements PropertyChangeListener
 				fileDrop1.setFile(null);
 				outputRequest.removeFile(file1Specification);
 				resetList(FileIndex.FILE_1);
+				
+				//close the file
+				if (droppedFile1 != null) {
+					droppedFile1.close();
+					droppedFile1 = null;
+				}
 				break;
+				
 			case FILE_2:
 				fileDrop2.setFile(null);
 				outputRequest.removeFile(file2Specification);
 				resetList(FileIndex.FILE_2);
+				
+				//close the file
+				if (droppedFile2 != null) {
+					droppedFile2.close();
+					droppedFile2 = null;
+				}
 				break;
 		}
 		

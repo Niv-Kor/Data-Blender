@@ -70,9 +70,7 @@ public class OutputRequest
 	/**
 	 * @param col - The new key column of the output file
 	 */
-	public void setKeyColumn(String col) {
-		keyColumn = col;
-	}
+	public void setKeyColumn(String col) { keyColumn = col; }
 	
 	/**
 	 * @return True if intersection mode is on.

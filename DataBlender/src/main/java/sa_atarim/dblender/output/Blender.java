@@ -54,7 +54,7 @@ public class Blender
 			//duplicate the found file
 			if (file.isKeyUnique()) {
 				duplicatedIndex = i;
-				duplicate(file, blendedFile);
+				duplicate(file, blendedFile, keyColumnName);
 				break;
 			}
 		}
@@ -99,8 +99,9 @@ public class Blender
 	 * 
 	 * @param origin - The specification of the sheet to copy
 	 * @param destination - The sheet to copy into
+	 * @param keyColumnName - The name of the key column
 	 */
-	private void duplicate(FileSpecification origin, XLSFile destination) {
+	private void duplicate(FileSpecification origin, XLSFile destination, String keyColumnName) {
 		SheetModifier originSheet = origin.getFile().getSheet();
 		XSSFSheet originSourceSheet = originSheet.getSource();
 		XSSFSheet destSourceSheet = destination.getSheet().getSource();
@@ -125,7 +126,12 @@ public class Blender
 				Row destRow = destSourceSheet.getRow(r);
 				Cell destCell = destRow.createCell(originColumns.get(column));
 				
-				if (originCell != null) CellFormat.copyCell(originCell, destCell);
+				//found an empty key value
+				if (column.equals(keyColumnName) && (originCell == null || CellFormat.getGenericValue(originCell) == "")) {
+					rowCount--;
+					continue;
+				}
+				else if (originCell != null) CellFormat.copyCell(originCell, destCell);
 			}
 		}
 	}

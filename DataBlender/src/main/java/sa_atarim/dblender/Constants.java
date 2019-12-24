@@ -80,7 +80,7 @@ public class Constants
 	public static final class Icons
 	{
 		private static final String FOLDER = "/icons/";
-		public static final ImageIcon ICON = ImageHandler.loadIcon(FOLDER + "icon.png");
+		public static final ImageIcon ICON = ImageHandler.loadIcon(FOLDER + "icon_32x32.png");
 		public static final ImageIcon COMPANY_LOGO = ImageHandler.loadIcon(FOLDER + "company_logo.png");
 		public static final ImageIcon CLEAR_X = ImageHandler.loadIcon(FOLDER + "clear.png");
 		public static final ImageIcon HOVER_CLEAR_X = ImageHandler.loadIcon(FOLDER + "hover_clear.png");
