@@ -504,12 +504,7 @@ public class MainState extends State implements PropertyChangeListener
 				PopupError.NO_KEY.pop();
 				return;
 			}
-//			else if (!droppedFile1.getSheet().isColumnFull(outputRequest.getKeyColumn()) ||
-//					 !droppedFile2.getSheet().isColumnFull(outputRequest.getKeyColumn())) {
-//				
-//				PopupError.KEY_INCOMPATIBLE.pop();
-//				return;
-//			}
+
 			//prepare to blend
 			else {
 				//enter columns to file specifications

@@ -22,11 +22,7 @@ public enum PopupError
 	NO_KEY("Missing Key Column", 201,
 		   "The file cannot be processed without a key column (yellow sqaure)."),
 	
-	KEY_INCOMPATIBLE("Key is Incompatible", 202,
-				     "The key column you selected is not a suitable key,<br>"
-				   + "because there might be some rows that contain no data for it."),
-	
-	KEY_NOT_UNIQUE("Key is not unique", 203,
+	KEY_NOT_UNIQUE("Key is not unique", 202,
 			       "Both of the files contain multiple rows with the same key value.<br>"
 				 + "The key column must contain unique values for at least one of the files.");
 	

@@ -12,7 +12,7 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 
 public class SheetModifier
 {
-	private static final int FIRST_ROW_CHECK_SAMPLE = 25;
+	private static final int FIRST_ROW_CHECK_SAMPLE = 50;
 	
 	private DataFormatter formatter;
 	private XSSFSheet xssfSheet;
@@ -35,10 +35,24 @@ public class SheetModifier
 		int columns = firstRow.getPhysicalNumberOfCells();
 		String[] columnNames = new String[columns];
 		
-		for (int i = 0; i < columns; i++)
-			columnNames[i] = cellValueString(firstRow, i);
+		for (int i = 0; i < columns; i++) {
+			String name = cellValueString(firstRow, i);
+			columnNames[i] = clearNameParentheses(name);
+		}
 		
 		return columnNames;
+	}
+	
+	/**
+	 * Clear the parentheses in the beginning and the end of a column's name.
+	 * If the name has no parentheses, leave it as it is.
+	 * 
+	 * @return The column's name without parentheses.
+	 */
+	private static String clearNameParentheses(String columnName) {
+		if (columnName.charAt(0) == '"') columnName = columnName.substring(1);
+		if (columnName.charAt(columnName.length() - 1) == '"') columnName = columnName.substring(0, columnName.length() - 1);
+		return columnName;
 	}
 	
 	/**
@@ -105,10 +119,18 @@ public class SheetModifier
 			Row row = xssfSheet.getRow(i);
 			
 			if (row != null) {
-				int rowCells = row.getPhysicalNumberOfCells();
+				int cellCounter = 0;
 				
-				if (rowCells > maxCells) {
-					maxCells = rowCells;
+				//find the amount of actual non-empty cells in the row
+				for (int j = 0; j < row.getPhysicalNumberOfCells(); j++) {
+					Cell cell = row.getCell(j);
+					
+					if (cell != null && CellFormat.getGenericValue(cell) != "") cellCounter++;
+					else break;
+				}
+				
+				if (cellCounter > maxCells) {
+					maxCells = cellCounter;
 					largestRow = i;
 				}
 			}
@@ -141,10 +163,14 @@ public class SheetModifier
 	 * @return Column index if it was found, or -1 if it's not.
 	 */
 	public int getColumnIndex(String col) {
-		Row row = xssfSheet.getRow(0);
+		Row row = xssfSheet.getRow(headerRowIndex);
 		
-		for (int i = 0; i < row.getPhysicalNumberOfCells(); i++)
-			if (cellValueString(row, i).equalsIgnoreCase(col)) return i;
+		for (int i = 0; i < row.getPhysicalNumberOfCells(); i++) {
+			String parenthesesCol = "\"" + col + "\"";
+			String cellValue = cellValueString(row, i);
+			
+			if (cellValue.equalsIgnoreCase(col) || cellValue.equalsIgnoreCase(parenthesesCol)) return i;
+		}
 		
 		System.err.println("Could not find the column " + col);
 		return -1;
