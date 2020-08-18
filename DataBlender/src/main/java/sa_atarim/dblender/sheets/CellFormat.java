@@ -49,7 +49,7 @@ public enum CellFormat
 		containsSlash = containsSlash && !containsNumSign;
 		
 		if (containsSlash && allNums) return DATE;
-		else if (allNums && !strVal.equals("")) return NUMERIC;
+		else if (allNums && containsNumSign && !strVal.equals("")) return NUMERIC;
 		else return STRING;
 	}
 	
@@ -66,8 +66,23 @@ public enum CellFormat
 		Object value = null;
 		
 		switch (format) {
-			case STRING: value = cell.getStringCellValue(); break;
-			case BOOLEAN: value = cell.getBooleanCellValue(); break;
+			case STRING: {
+				try { value = cell.getStringCellValue(); }
+				catch (IllegalStateException e) {
+					double numeric = cell.getNumericCellValue();
+					String strVal = "" + numeric;
+					
+					//cut all decimal digits
+					int periodIndex = strVal.indexOf('.');
+					if (periodIndex != -1) strVal = strVal.substring(0, periodIndex);
+					value = strVal.replace("-", "").replace(".", "").replace(",", "");
+				}
+				break;
+			}
+			case BOOLEAN:
+				value = cell.getBooleanCellValue();
+				break;
+				
 			case DATE:
 				try { value = DATE_FORMAT.format(cell.getDateCellValue()); }
 				catch (IllegalStateException e) { value = cell.getStringCellValue(); }

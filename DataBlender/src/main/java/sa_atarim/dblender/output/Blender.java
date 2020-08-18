@@ -231,13 +231,11 @@ public class Blender
 				Object originKeyValue = CellFormat.getGenericValue(originCell);
 				
 				if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
-					System.out.println("for origin key value " + originKeyValue);
 				
 				for (ConstantCell key : keyValsClone) {
 					if (key.value.equals(originKeyValue)) {
 						int matchingRow = key.index;
 						if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
-						System.out.println("for value: " + CellFormat.getGenericValue(originRow.getCell(originColIndex)) + " found matching row " + matchingRow);
 						keyValsClone.remove(key);
 						
 						//insert the data to the destination

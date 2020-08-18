@@ -50,9 +50,10 @@ public class SheetModifier
 	 * @return The column's name without parentheses.
 	 */
 	private static String clearNameParentheses(String columnName) {
-		if (columnName.charAt(0) == '"') columnName = columnName.substring(1);
+		return columnName.replaceAll("\"", "");
+		/*if (columnName.charAt(0) == '"') columnName = columnName.substring(1);
 		if (columnName.charAt(columnName.length() - 1) == '"') columnName = columnName.substring(0, columnName.length() - 1);
-		return columnName;
+		return columnName;*/
 	}
 	
 	/**
