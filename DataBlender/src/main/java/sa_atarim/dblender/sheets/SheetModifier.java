@@ -51,9 +51,6 @@ public class SheetModifier
 	 */
 	private static String clearNameParentheses(String columnName) {
 		return columnName.replaceAll("\"", "");
-		/*if (columnName.charAt(0) == '"') columnName = columnName.substring(1);
-		if (columnName.charAt(columnName.length() - 1) == '"') columnName = columnName.substring(0, columnName.length() - 1);
-		return columnName;*/
 	}
 	
 	/**
@@ -173,7 +170,6 @@ public class SheetModifier
 			if (cellValue.equalsIgnoreCase(col) || cellValue.equalsIgnoreCase(parenthesesCol)) return i;
 		}
 		
-		System.err.println("Could not find the column " + col);
 		return -1;
 	}
 	

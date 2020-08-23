@@ -230,12 +230,9 @@ public class Blender
 				//find the matching row in the destination
 				Object originKeyValue = CellFormat.getGenericValue(originCell);
 				
-				if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
-				
 				for (ConstantCell key : keyValsClone) {
 					if (key.value.equals(originKeyValue)) {
 						int matchingRow = key.index;
-						if (originKeyValue.equals("בן פורת א.ר בע\"מ"))
 						keyValsClone.remove(key);
 						
 						//insert the data to the destination
