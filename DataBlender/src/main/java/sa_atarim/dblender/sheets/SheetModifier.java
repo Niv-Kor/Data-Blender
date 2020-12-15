@@ -332,7 +332,8 @@ public class SheetModifier
 	 * @return The cell's value as type String.
 	 */
 	public String cellValueString(Row row, int column) {
-		return formatter.formatCellValue(row.getCell(column));
+		try { return formatter.formatCellValue(row.getCell(column)); }
+		catch (NullPointerException ex) { System.out.println(ex); return ""; }
 	}
 	
 	/**
@@ -343,7 +344,8 @@ public class SheetModifier
 	 * @return The cell's value as type String.
 	 */
 	public String cellValueString(Row row, String column) {
-		return formatter.formatCellValue(row.getCell(getColumnIndex(column)));
+		try { return formatter.formatCellValue(row.getCell(getColumnIndex(column))); }
+		catch (NullPointerException ex) { System.out.println(ex); return ""; }
 	}
 	
 	/**

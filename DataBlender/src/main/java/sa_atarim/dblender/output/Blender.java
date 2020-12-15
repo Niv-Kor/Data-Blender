@@ -150,7 +150,7 @@ public class Blender
 		SheetModifier originSheet = origin.getFile().getSheet();
 		SheetModifier destSheet = destination.getSheet();
 		Sheet originSourceSheet = originSheet.getSource();
-		Sheet destSourceSheet = destination.getSheet().getSource();
+		Sheet destSourceSheet = destSheet.getSource();
 		Map<String, Integer> originColumns = origin.getColumns();
 		int originKeyCol = originSheet.getColumnIndex(keyColumn);
 		ConstantCellSet finalKeyVals;

@@ -528,11 +528,10 @@ public class MainState extends State implements PropertyChangeListener
 					}
 					
 					switch (entry.getEntryIcon()) {
-						case GREEN:
-						case GREEN_CANDIDATE: file1Specification.addColumn(name, index); break;
-						case BLUE:
-						case BLUE_CANDIDATE: file2Specification.addColumn(name, index); break;
-							
+						case GREEN_CANDIDATE: file2Specification.addColumn(name, index);
+						case GREEN: file1Specification.addColumn(name, index); break;
+						case BLUE_CANDIDATE: file1Specification.addColumn(name, index);
+						case BLUE: file2Specification.addColumn(name, index); break;
 						default: break;
 					}
 				}
